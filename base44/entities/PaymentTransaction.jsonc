@@ -1,0 +1,86 @@
+{
+  "name": "PaymentTransaction",
+  "type": "object",
+  "properties": {
+    "tenant_user_id": {
+      "type": "string"
+    },
+    "owner_user_id": {
+      "type": "string"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "listing_title": {
+      "type": "string"
+    },
+    "subscription_id": {
+      "type": "string",
+      "description": "TenantSubscription entity ID"
+    },
+    "stripe_invoice_id": {
+      "type": "string"
+    },
+    "stripe_charge_id": {
+      "type": "string"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Total charge in cents"
+    },
+    "platform_fee": {
+      "type": "number",
+      "description": "Commission taken in cents"
+    },
+    "amount_to_owner": {
+      "type": "number",
+      "description": "Owner receives in cents"
+    },
+    "currency": {
+      "type": "string",
+      "default": "cad"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "succeeded",
+        "pending",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "failure_reason": {
+      "type": "string"
+    },
+    "refund_reason": {
+      "type": "string"
+    },
+    "receipt_url": {
+      "type": "string"
+    },
+    "receipt_uri": {
+      "type": "string",
+      "description": "Private file URI for receipt PDF"
+    }
+  },
+  "required": [
+    "tenant_user_id",
+    "owner_user_id",
+    "listing_id",
+    "amount",
+    "currency",
+    "status"
+  ]
+}

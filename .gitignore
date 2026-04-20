@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-debug.log*
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+
+# Environment variables (NEVER COMMIT THESE!)
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Supabase local
+.supabase/
+supabase/.temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+
+# Misc
+.cache/
+.parcel-cache/

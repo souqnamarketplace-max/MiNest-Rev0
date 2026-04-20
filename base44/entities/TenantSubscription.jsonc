@@ -1,0 +1,89 @@
+{
+  "name": "TenantSubscription",
+  "type": "object",
+  "properties": {
+    "tenant_user_id": {
+      "type": "string"
+    },
+    "owner_user_id": {
+      "type": "string"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "listing_title": {
+      "type": "string"
+    },
+    "payment_plan_id": {
+      "type": "string"
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    },
+    "stripe_subscription_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "trialing",
+        "past_due",
+        "canceled",
+        "unpaid",
+        "incomplete"
+      ],
+      "default": "incomplete"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "next_payment_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "amount_per_period": {
+      "type": "number",
+      "description": "Total amount tenant pays (in cents)"
+    },
+    "platform_fee_amount": {
+      "type": "number",
+      "description": "Platform commission per cycle (in cents)"
+    },
+    "amount_to_owner": {
+      "type": "number",
+      "description": "Amount owner receives per cycle (in cents)"
+    },
+    "total_paid": {
+      "type": "number",
+      "default": 0
+    },
+    "total_fee_collected": {
+      "type": "number",
+      "default": 0
+    },
+    "cancel_reason": {
+      "type": "string"
+    },
+    "cancel_requested_by": {
+      "type": "string",
+      "enum": [
+        "tenant",
+        "owner",
+        "admin",
+        "system"
+      ]
+    }
+  },
+  "required": [
+    "tenant_user_id",
+    "owner_user_id",
+    "listing_id",
+    "payment_plan_id"
+  ]
+}

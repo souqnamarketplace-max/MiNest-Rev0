@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+
+# Allow all major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Block private/authenticated pages only
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /messages
+Disallow: /admin
+Disallow: /my-payments
+Disallow: /my-viewings
+Disallow: /favorites
+Disallow: /notifications
+Disallow: /seeker-onboarding
+Disallow: /create-listing
+Disallow: /notification-preferences
+
+# Sitemap
+Sitemap: https://minest.ca/sitemap.xml

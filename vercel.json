@@ -1,0 +1,28 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/listing-checks",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/daily-digest",
+      "schedule": "0 13 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    }
+  ]
+}

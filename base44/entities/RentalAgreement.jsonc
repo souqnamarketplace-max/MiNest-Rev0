@@ -1,0 +1,292 @@
+{
+  "name": "RentalAgreement",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string"
+    },
+    "listing_title": {
+      "type": "string"
+    },
+    "owner_user_id": {
+      "type": "string"
+    },
+    "owner_legal_name": {
+      "type": "string",
+      "description": "Owner/Landlord full legal name"
+    },
+    "owner_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "owner_phone": {
+      "type": "string"
+    },
+    "owner_mailing_address": {
+      "type": "string",
+      "description": "Landlord mailing address (if different from property)"
+    },
+    "owner_corporation_name": {
+      "type": "string",
+      "description": "Corporation/company name if applicable"
+    },
+    "tenant_user_id": {
+      "type": "string"
+    },
+    "tenant_legal_name": {
+      "type": "string",
+      "description": "Tenant full legal name"
+    },
+    "tenant_email": {
+      "type": "string",
+      "format": "email"
+    },
+    "tenant_phone": {
+      "type": "string"
+    },
+    "tenant_current_address": {
+      "type": "string",
+      "description": "Tenant's current address before move-in"
+    },
+    "tenant_date_of_birth": {
+      "type": "string",
+      "format": "date"
+    },
+    "tenant_employer": {
+      "type": "string",
+      "description": "Tenant's employer or occupation"
+    },
+    "tenant_emergency_contact_name": {
+      "type": "string"
+    },
+    "tenant_emergency_contact_phone": {
+      "type": "string"
+    },
+    "tenant_id_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "enum": [
+              "passport",
+              "driver_license",
+              "id_card"
+            ]
+          },
+          "file_url": {
+            "type": "string"
+          },
+          "uploaded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "payment_plan_id": {
+      "type": "string"
+    },
+    "rent_amount": {
+      "type": "number",
+      "description": "In cents"
+    },
+    "currency": {
+      "type": "string",
+      "default": "cad"
+    },
+    "interval": {
+      "type": "string",
+      "enum": [
+        "month",
+        "week",
+        "year"
+      ],
+      "default": "month"
+    },
+    "rent_due_day": {
+      "type": "number",
+      "default": 1,
+      "description": "Day of month rent is due (1\u201328)"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "in_app",
+        "e_transfer",
+        "cheque",
+        "cash",
+        "other"
+      ],
+      "default": "in_app"
+    },
+    "late_fee_amount": {
+      "type": "number",
+      "description": "Late fee in cents if rent paid after grace period"
+    },
+    "late_fee_grace_days": {
+      "type": "number",
+      "default": 5,
+      "description": "Grace period days before late fee applies"
+    },
+    "lease_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "lease_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "lease_type": {
+      "type": "string",
+      "enum": [
+        "fixed_term",
+        "month_to_month"
+      ],
+      "default": "fixed_term"
+    },
+    "deposit_amount": {
+      "type": "number",
+      "description": "In cents"
+    },
+    "deposit_held_by": {
+      "type": "string",
+      "description": "Who holds the deposit (landlord name / trust account)"
+    },
+    "last_month_rent_collected": {
+      "type": "boolean",
+      "default": false
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "unit_number": {
+      "type": "string"
+    },
+    "property_type": {
+      "type": "string",
+      "description": "e.g. apartment, house, condo, room"
+    },
+    "parking_included": {
+      "type": "boolean",
+      "default": false
+    },
+    "parking_space": {
+      "type": "string",
+      "description": "Parking spot number/description if included"
+    },
+    "storage_included": {
+      "type": "boolean",
+      "default": false
+    },
+    "utilities_included": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "e.g. ['heat', 'water', 'electricity', 'internet']"
+    },
+    "appliances_included": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "e.g. ['fridge', 'stove', 'washer', 'dryer']"
+    },
+    "smoking_permitted": {
+      "type": "boolean",
+      "default": false
+    },
+    "pets_permitted": {
+      "type": "boolean",
+      "default": false
+    },
+    "pet_details": {
+      "type": "string"
+    },
+    "subletting_permitted": {
+      "type": "boolean",
+      "default": false
+    },
+    "house_rules": {
+      "type": "string"
+    },
+    "guest_policy": {
+      "type": "string"
+    },
+    "quiet_hours_start": {
+      "type": "string",
+      "default": "22:00"
+    },
+    "quiet_hours_end": {
+      "type": "string",
+      "default": "08:00"
+    },
+    "special_terms": {
+      "type": "string"
+    },
+    "governing_province_or_state": {
+      "type": "string",
+      "description": "Province or state whose tenancy law governs this agreement"
+    },
+    "country": {
+      "type": "string",
+      "default": "CA",
+      "enum": [
+        "CA",
+        "US"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_tenant",
+        "accepted",
+        "declined",
+        "expired",
+        "canceled"
+      ],
+      "default": "pending_tenant"
+    },
+    "tenant_signature": {
+      "type": "string"
+    },
+    "tenant_signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "owner_signature": {
+      "type": "string"
+    },
+    "owner_signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "offer_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "renewal_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "renewal_offered",
+        "renewed",
+        "ending"
+      ],
+      "default": "none"
+    },
+    "subscription_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "listing_id",
+    "owner_user_id",
+    "tenant_user_id",
+    "lease_start_date",
+    "lease_end_date",
+    "rent_amount"
+  ]
+}

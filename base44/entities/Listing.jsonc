@@ -1,0 +1,321 @@
+{
+  "name": "Listing",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string"
+    },
+    "listing_type": {
+      "type": "string",
+      "enum": [
+        "private_room",
+        "shared_room",
+        "entire_place"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "country": {
+      "type": "string"
+    },
+    "province_or_state": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "neighborhood": {
+      "type": "string"
+    },
+    "street_address": {
+      "type": "string"
+    },
+    "postal_or_zip": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "monthly_rent": {
+      "type": "number",
+      "description": "DEPRECATED: Use rent_amount instead"
+    },
+    "rent_amount": {
+      "type": "number",
+      "description": "Rent amount in the specified period"
+    },
+    "rent_period": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "weekly",
+        "daily"
+      ],
+      "default": "monthly",
+      "description": "Rent payment frequency"
+    },
+    "rent_normalized_monthly": {
+      "type": "number",
+      "description": "Monthly equivalent for filtering/sorting"
+    },
+    "currency_code": {
+      "type": "string",
+      "default": "CAD"
+    },
+    "price_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "period": {
+            "type": "string"
+          },
+          "changed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "previous_amount": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "deposit_amount": {
+      "type": "number"
+    },
+    "bills_included": {
+      "type": "boolean",
+      "default": false
+    },
+    "available_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "minimum_stay_months": {
+      "type": "number"
+    },
+    "maximum_stay_months": {
+      "type": "number"
+    },
+    "property_type": {
+      "type": "string"
+    },
+    "furnishing": {
+      "type": "string",
+      "enum": [
+        "furnished",
+        "unfurnished",
+        "partially_furnished"
+      ]
+    },
+    "bathroom_type": {
+      "type": "string",
+      "enum": [
+        "private",
+        "shared"
+      ]
+    },
+    "parking_status": {
+      "type": "string",
+      "enum": [
+        "free_included",
+        "paid_available",
+        "not_available"
+      ],
+      "default": "not_available"
+    },
+    "parking_type": {
+      "type": "string",
+      "enum": [
+        "garage",
+        "driveway",
+        "street",
+        "covered",
+        "underground",
+        "carport",
+        "other"
+      ]
+    },
+    "parking_price": {
+      "type": "number"
+    },
+    "parking_price_period": {
+      "type": "string",
+      "enum": [
+        "monthly",
+        "weekly",
+        "daily"
+      ]
+    },
+    "parking_notes": {
+      "type": "string"
+    },
+    "internet_included": {
+      "type": "boolean",
+      "default": false
+    },
+    "pets_allowed": {
+      "type": "boolean",
+      "default": false
+    },
+    "smoking_allowed": {
+      "type": "boolean",
+      "default": false
+    },
+    "couples_allowed": {
+      "type": "boolean",
+      "default": false
+    },
+    "student_friendly": {
+      "type": "boolean",
+      "default": false
+    },
+    "lgbtq_friendly": {
+      "type": "boolean",
+      "default": false
+    },
+    "gender_preference": {
+      "type": "string",
+      "default": "any"
+    },
+    "age_preference_min": {
+      "type": "number"
+    },
+    "age_preference_max": {
+      "type": "number"
+    },
+    "occupation_preference": {
+      "type": "string"
+    },
+    "cleanliness_preference": {
+      "type": "string"
+    },
+    "lifestyle_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cover_photo_url": {
+      "type": "string"
+    },
+    "photo_count": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_review",
+        "active",
+        "rented",
+        "paused",
+        "expired",
+        "rejected",
+        "removed"
+      ],
+      "default": "draft",
+      "description": "rented = currently occupied by a paying tenant"
+    },
+    "moderation_status": {
+      "type": "string",
+      "default": "clean"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_boosted": {
+      "type": "boolean",
+      "default": false
+    },
+    "boost_end_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "featured_rank": {
+      "type": "number"
+    },
+    "view_count": {
+      "type": "number",
+      "default": 0
+    },
+    "save_count": {
+      "type": "number",
+      "default": 0
+    },
+    "contact_request_count": {
+      "type": "number",
+      "default": 0
+    },
+    "verification_badges": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "viewing_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "viewing_mode": {
+      "type": "string",
+      "enum": [
+        "manual_approval"
+      ],
+      "default": "manual_approval"
+    },
+    "minimum_notice_hours": {
+      "type": "number",
+      "default": 24
+    },
+    "viewing_duration_minutes": {
+      "type": "number",
+      "default": 30
+    },
+    "viewing_buffer_minutes": {
+      "type": "number",
+      "default": 15
+    },
+    "owner_viewing_instructions": {
+      "type": "string"
+    },
+    "viewing_timezone": {
+      "type": "string"
+    },
+    "payments_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the owner has enabled in-app rent payments for this listing"
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "title",
+    "listing_type"
+  ]
+}

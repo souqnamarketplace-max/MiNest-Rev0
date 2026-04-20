@@ -1,0 +1,155 @@
+/**
+ * entities.js — Drop-in Supabase replacement for all entities.* calls
+ * FIX #1: user.email as ID → user.id (UUID) everywhere
+ * FIX #2: MongoDB operators ($regex, $gte, $lte, $in) → Supabase equivalents
+ */
+import { supabase } from '@/lib/supabase';
+
+function applyFilters(query, filters) {
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      for (const [op, operand] of Object.entries(value)) {
+        if (op === '$gte') query = query.gte(key, operand);
+        else if (op === '$lte') query = query.lte(key, operand);
+        else if (op === '$gt') query = query.gt(key, operand);
+        else if (op === '$lt') query = query.lt(key, operand);
+        else if (op === '$in') query = query.in(key, operand);
+        else if (op === '$regex') query = query.ilike(key, `%${operand}%`);
+      }
+    } else if (Array.isArray(value)) {
+      query = query.contains(key, value);
+    } else {
+      query = query.eq(key, value);
+    }
+  }
+  return query;
+}
+
+function applySort(query, sort) {
+  if (!sort) return query;
+  const desc = sort.startsWith('-');
+  const raw = (desc ? sort.slice(1) : sort)
+    .replace('created_date', 'created_at')
+    .replace('updated_date', 'updated_at')
+    .replace('last_message_date', 'last_message_at');
+  return query.order(raw, { ascending: !desc });
+}
+
+function makeEntity(table) {
+  return {
+    filter: async (filters = {}, sort = '-created_at', limit = 100) => {
+      let query = supabase.from(table).select('*');
+      query = applyFilters(query, filters);
+      query = applySort(query, sort);
+      if (limit) query = query.limit(limit);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data ?? [];
+    },
+    list: async (sort = '-created_at', limit = 100) => {
+      let query = supabase.from(table).select('*');
+      query = applySort(query, sort);
+      if (limit) query = query.limit(limit);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data ?? [];
+    },
+    get: async (id) => {
+      const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
+      if (error) throw error;
+      return data;
+    },
+    create: async (payload) => {
+      const { data, error } = await supabase.from(table).insert(payload).select().single();
+      if (error) throw error;
+      return data;
+    },
+    update: async (id, payload) => {
+      const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    delete: async (id) => {
+      const { error } = await supabase.from(table).delete().eq('id', id);
+      if (error) throw error;
+      return true;
+    },
+    // FIX #6: Replaces 5s polling with Supabase Realtime
+    subscribe: (callback) => {
+      const channel = supabase
+        .channel(`${table}_realtime_${Math.random()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table }, callback)
+        .subscribe();
+      return () => supabase.removeChannel(channel);
+    },
+  };
+}
+
+export const entities = {
+  Listing:                makeEntity('listings'),
+  UserProfile:            makeEntity('user_profiles'),
+  SeekerProfile:          makeEntity('seeker_profiles'),
+  Conversation:           makeEntity('conversations'),
+  Message:                makeEntity('messages'),
+  Favorite:               makeEntity('favorites'),
+  ViewingAppointment:     makeEntity('viewing_appointments'),
+  RentalAgreement:        makeEntity('rental_agreements'),
+  PaymentPlan:            makeEntity('payment_plans'),
+  TenantSubscription:     makeEntity('tenant_subscriptions'),
+  PaymentTransaction:     makeEntity('payment_transactions'),
+  DepositRefund:          makeEntity('deposit_refunds'),
+  PaymentDispute:         makeEntity('payment_disputes'),
+  StripeConnectAccount:   makeEntity('stripe_connect_accounts'),
+  UserVerification:       makeEntity('user_verifications'),
+  VerificationSettings:   makeEntity('verification_settings'),
+  CommissionRule:         makeEntity('commission_rules'),
+  BoostSettings:          makeEntity('boost_settings'),
+  Notification:           makeEntity('notifications'),
+  NotificationPreference: makeEntity('notification_preferences'),
+  ContactMessage:         makeEntity('contact_messages'),
+  SavedSearch:            makeEntity('saved_searches'),
+  Report:                 makeEntity('reports'),
+  DeviceToken:            makeEntity('device_tokens'),
+};
+
+// Upload file to Supabase Storage
+// FIX: Replaces base44.integrations.Core.UploadFile
+export async function uploadFile(file, bucket = 'listing-photos') {
+  const ext = file.name.split('.').pop();
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+  return { file_url: data.publicUrl };
+}
+
+// Invoke a Vercel API function
+// FIX: Replaces invokeFunction(name, payload)
+export async function invokeFunction(name, payload = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  const res = await fetch(`/api/${name}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Function ${name} failed: ${res.statusText}`);
+  return res.json();
+}
+
+// Invoke AI — ALWAYS routes through server-side proxy
+// SECURITY: API key is NEVER exposed to client bundle
+// Use ANTHROPIC_API_KEY (no VITE_ prefix) in server environment only
+export async function invokeLLM({ prompt, response_json_schema } = {}) {
+  // Always use server-side proxy — never call Anthropic directly from browser
+  // This protects the API key from being exposed in the client bundle
+  const result = await invokeFunction('ai/invoke', { prompt, response_json_schema });
+  return result.text ?? result;
+}

@@ -1,0 +1,87 @@
+{
+  "name": "DepositRefund",
+  "type": "object",
+  "properties": {
+    "subscription_id": {
+      "type": "string",
+      "description": "Reference to TenantSubscription"
+    },
+    "owner_user_id": {
+      "type": "string",
+      "description": "Owner who initiated the refund"
+    },
+    "tenant_user_id": {
+      "type": "string",
+      "description": "Tenant receiving the refund"
+    },
+    "listing_id": {
+      "type": "string",
+      "description": "Listing reference"
+    },
+    "refund_amount": {
+      "type": "number",
+      "description": "Refund amount in cents"
+    },
+    "currency": {
+      "type": "string",
+      "default": "cad"
+    },
+    "stripe_refund_id": {
+      "type": "string",
+      "description": "Stripe refund transaction ID (if stripe method)"
+    },
+    "refund_reason": {
+      "type": "string",
+      "description": "Reason for the refund"
+    },
+    "refund_method": {
+      "type": "string",
+      "enum": [
+        "stripe",
+        "manual"
+      ],
+      "default": "stripe",
+      "description": "How the refund was sent"
+    },
+    "bank_details": {
+      "type": "object",
+      "description": "Bank details for manual transfer",
+      "properties": {
+        "bank_name": {
+          "type": "string"
+        },
+        "account_name": {
+          "type": "string"
+        },
+        "account_number": {
+          "type": "string"
+        },
+        "transit_number": {
+          "type": "string"
+        },
+        "institution_number": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "subscription_id",
+    "owner_user_id",
+    "tenant_user_id",
+    "listing_id",
+    "refund_amount"
+  ]
+}

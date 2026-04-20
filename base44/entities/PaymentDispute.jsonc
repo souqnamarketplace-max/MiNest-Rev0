@@ -1,0 +1,73 @@
+{
+  "name": "PaymentDispute",
+  "type": "object",
+  "properties": {
+    "reporter_user_id": {
+      "type": "string"
+    },
+    "reported_user_id": {
+      "type": "string"
+    },
+    "subscription_id": {
+      "type": "string"
+    },
+    "transaction_id": {
+      "type": "string"
+    },
+    "listing_id": {
+      "type": "string"
+    },
+    "dispute_type": {
+      "type": "string",
+      "enum": [
+        "payment_not_received",
+        "overcharged",
+        "unauthorized_charge",
+        "service_not_delivered",
+        "refund_requested",
+        "other"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "evidence_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "under_review",
+        "resolved_for_tenant",
+        "resolved_for_owner",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "resolution_amount": {
+      "type": "number",
+      "description": "Refund amount in cents, if applicable"
+    },
+    "resolved_by": {
+      "type": "string"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "reporter_user_id",
+    "subscription_id",
+    "listing_id",
+    "dispute_type",
+    "description"
+  ]
+}
