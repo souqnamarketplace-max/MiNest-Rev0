@@ -191,11 +191,15 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
     } else if (filters?.country === 'United States') {
       map.flyTo([39.5, -98.35], 4, { animate: true, duration: 1 });
     } else if (resolvedListings.length > 0) {
-      const bounds = resolvedListings.map(l => [l._lat, l._lng]);
+      const bounds = resolvedListings
+        .filter(l => typeof l._lat === 'number' && isFinite(l._lat) && typeof l._lng === 'number' && isFinite(l._lng))
+        .map(l => [l._lat, l._lng]);
       if (bounds.length === 1) {
         map.flyTo(bounds[0], 13, { animate: true, duration: 1 });
       } else if (bounds.length > 1) {
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      } else {
+        map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
       }
     } else {
       map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
@@ -304,7 +308,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
           return null;
         })
       );
-      setResolvedListings(results.filter(r => r && r._lat && r._lng && isFinite(r._lat) && isFinite(r._lng)));
+      setResolvedListings(results.filter(r => r && typeof r._lat === 'number' && typeof r._lng === 'number' && isFinite(r._lat) && isFinite(r._lng)));
     };
     resolve();
   }, [listings]);
@@ -316,9 +320,10 @@ export default function MapView({ listings, filters, onListingHover, activeListi
   );
 
   const center = useMemo(() => {
-    if (resolvedListings.length === 0) return [53.5, -113.5];
-    const avgLat = resolvedListings.reduce((s, l) => s + (l._lat || 0), 0) / resolvedListings.length;
-    const avgLng = resolvedListings.reduce((s, l) => s + (l._lng || 0), 0) / resolvedListings.length;
+    const valid = resolvedListings.filter(l => typeof l._lat === 'number' && isFinite(l._lat));
+    if (valid.length === 0) return [53.5, -113.5];
+    const avgLat = valid.reduce((s, l) => s + l._lat, 0) / valid.length;
+    const avgLng = valid.reduce((s, l) => s + l._lng, 0) / valid.length;
     return [avgLat, avgLng];
   }, [resolvedListings]);
 

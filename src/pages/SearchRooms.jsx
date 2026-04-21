@@ -38,7 +38,99 @@ export default function SearchRooms() {
   const [rentPeriodTab, setRentPeriodTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [hoveredListingId, setHoveredListingId] = useState(null);
+  const [locationDetected, setLocationDetected] = useState(false);
   const PAGE_SIZE = 12;
+
+  // ==========================================
+  // LAYER 1: Remember last search in localStorage
+  // ==========================================
+  useEffect(() => {
+    // Save current search to localStorage whenever city/province changes
+    if (filters.city) localStorage.setItem('minest-last-city', filters.city);
+    if (filters.province_or_state) localStorage.setItem('minest-last-province', filters.province_or_state);
+  }, [filters.city, filters.province_or_state]);
+
+  // ==========================================
+  // LAYER 2: Seeker profile preferred location
+  // ==========================================
+  const { data: seekerProfile } = useQuery({
+    queryKey: ["seeker-profile-location", user?.id],
+    queryFn: async () => {
+      const profiles = await entities.SeekerProfile.filter({ owner_user_id: user.id });
+      return profiles[0] || null;
+    },
+    enabled: !!user,
+    staleTime: 60000,
+  });
+
+  // ==========================================
+  // LAYER 3: Browser geolocation (one-time)
+  // ==========================================
+  useEffect(() => {
+    // Skip if URL params already set, or if user already searched, or if location was detected
+    if (urlParams.get("city") || filters.city || locationDetected) return;
+
+    // Priority 1: Check last search from localStorage
+    const lastCity = localStorage.getItem('minest-last-city');
+    const lastProvince = localStorage.getItem('minest-last-province');
+    if (lastCity) {
+      setCityInput(lastCity);
+      setFilters(prev => ({
+        ...prev,
+        city: lastCity,
+        province_or_state: lastProvince || prev.province_or_state,
+      }));
+      setLocationDetected(true);
+      return;
+    }
+
+    // Priority 2: Check seeker profile preferred location
+    if (seekerProfile?.preferred_cities?.length > 0) {
+      const preferredCity = seekerProfile.preferred_cities[0];
+      setCityInput(preferredCity);
+      setFilters(prev => ({
+        ...prev,
+        city: preferredCity,
+        province_or_state: seekerProfile.preferred_province_or_state || prev.province_or_state,
+      }));
+      setLocationDetected(true);
+      return;
+    }
+
+    // Priority 3: Browser geolocation — only if user hasn't declined before
+    const geoDeclined = localStorage.getItem('minest-geo-declined');
+    if (geoDeclined) return;
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            // Reverse geocode to get city name
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=10`
+            );
+            const data = await res.json();
+            const city = data?.address?.city || data?.address?.town || data?.address?.village || "";
+            const province = data?.address?.state || "";
+            if (city) {
+              setCityInput(city);
+              setFilters(prev => ({ ...prev, city, province_or_state: province }));
+              localStorage.setItem('minest-last-city', city);
+              localStorage.setItem('minest-last-province', province);
+            }
+          } catch {}
+          setLocationDetected(true);
+        },
+        () => {
+          // User declined — remember so we don't ask again
+          localStorage.setItem('minest-geo-declined', 'true');
+          setLocationDetected(true);
+        },
+        { timeout: 5000, maximumAge: 300000 }
+      );
+    }
+  }, [seekerProfile, locationDetected]);
 
   useEffect(() => { setCurrentPage(1); }, [filters, rentPeriodTab]);
 
