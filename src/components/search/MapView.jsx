@@ -194,9 +194,9 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
       const bounds = resolvedListings
         .filter(l => typeof l._lat === 'number' && isFinite(l._lat) && typeof l._lng === 'number' && isFinite(l._lng))
         .map(l => [l._lat, l._lng]);
-      if (bounds.length === 1) {
+      if (bounds.length === 1 && isFinite(bounds[0][0]) && isFinite(bounds[0][1])) {
         map.flyTo(bounds[0], 13, { animate: true, duration: 1 });
-      } else if (bounds.length > 1) {
+      } else if (bounds.length > 1 && bounds.every(b => isFinite(b[0]) && isFinite(b[1]))) {
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
       } else {
         map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
@@ -204,7 +204,6 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
     } else {
       map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
     }
-  } catch(e) { console.warn('Map error:', e); }
   }, [filters?.city, filters?.province_or_state, filters?.country, resolvedListings.length]);
 
   return null;
