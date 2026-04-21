@@ -486,6 +486,23 @@ export default function ListingDetail() {
               </div>
             </div>
 
+
+          {/* Property Details */}
+          {(listing.total_bedrooms || listing.current_roommates !== null || listing.room_size_sqft || listing.laundry || listing.kitchen_access || listing.floor_level || listing.ac_heating) && (
+            <div className="bg-card rounded-xl border border-border p-4">
+              <h3 className="font-semibold text-foreground mb-3">Property Details</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                {listing.total_bedrooms && <div className="flex items-center gap-2"><Bed className="w-4 h-4 text-accent" /><span>{listing.total_bedrooms} Bedroom{listing.total_bedrooms > 1 ? "s" : ""}</span></div>}
+                {listing.current_roommates !== null && listing.current_roommates !== undefined && <div className="flex items-center gap-2"><Users className="w-4 h-4 text-accent" /><span>{listing.current_roommates} Roommate{listing.current_roommates !== 1 ? "s" : ""}</span></div>}
+                {listing.room_size_sqft && <div className="flex items-center gap-2"><Home className="w-4 h-4 text-accent" /><span>{listing.room_size_sqft} sq ft</span></div>}
+                {listing.beds_in_room && <div className="flex items-center gap-2"><Bed className="w-4 h-4 text-accent" /><span>{listing.beds_in_room} Bed{listing.beds_in_room > 1 ? "s" : ""} in Room</span></div>}
+                {listing.laundry && <div className="flex items-center gap-2"><Home className="w-4 h-4 text-accent" /><span className="capitalize">{listing.laundry.replace(/_/g, " ")}</span></div>}
+                {listing.kitchen_access && <div className="flex items-center gap-2"><Home className="w-4 h-4 text-accent" /><span className="capitalize">{listing.kitchen_access} Kitchen</span></div>}
+                {listing.floor_level && <div className="flex items-center gap-2"><Home className="w-4 h-4 text-accent" /><span className="capitalize">{listing.floor_level} Floor</span></div>}
+                {listing.ac_heating && <div className="flex items-center gap-2"><Home className="w-4 h-4 text-accent" /><span className="capitalize">{listing.ac_heating.replace(/_/g, " ")}</span></div>}
+              </div>
+            </div>
+          )}
             {/* Rent Details Table */}
             <RentDetailsTable listing={listing} />
 

@@ -30,6 +30,7 @@ import Terms from '@/pages/Terms';
 import Privacy from '@/pages/Privacy';
 import AcceptableUse from '@/pages/AcceptableUse';
 import Admin from '@/pages/Admin';
+import MyBookings from "@/pages/MyBookings";
 import AdminModeration from '@/pages/AdminModeration';
 import AdminEmailTest from '@/pages/AdminEmailTest';
 import CityListings from '@/pages/CityListings';
@@ -93,6 +94,7 @@ function AnimatedRoutes() {
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
             <Route path="/listing/:id/edit" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
+            <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
