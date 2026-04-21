@@ -81,8 +81,15 @@ export default function SearchRooms() {
     if (filters.laundry) q.laundry = filters.laundry;
     if (filters.floor_level) q.floor_level = filters.floor_level;
     if (filters.ac_heating) q.ac_heating = filters.ac_heating;
-    if (filters.price_min) q.rent_normalized_monthly = { ...q.rent_normalized_monthly, $gte: Number(filters.price_min) };
-    if (filters.price_max) q.rent_normalized_monthly = { ...q.rent_normalized_monthly, $lte: Number(filters.price_max) };
+    if (filters.booking_mode) q.booking_mode = filters.booking_mode;
+    // Price filtering: use rent_amount for daily/weekly, rent_normalized_monthly for monthly/all
+    if (filters.rent_period === "daily" || filters.rent_period === "weekly") {
+      if (filters.price_min) q.rent_amount = { ...q.rent_amount, $gte: Number(filters.price_min) };
+      if (filters.price_max) q.rent_amount = { ...q.rent_amount, $lte: Number(filters.price_max) };
+    } else {
+      if (filters.price_min) q.rent_normalized_monthly = { ...q.rent_normalized_monthly, $gte: Number(filters.price_min) };
+      if (filters.price_max) q.rent_normalized_monthly = { ...q.rent_normalized_monthly, $lte: Number(filters.price_max) };
+    }
     return q;
   }, [filters]);
 
@@ -102,10 +109,33 @@ export default function SearchRooms() {
   const listings = useMemo(() => {
     const now = new Date();
     const filtered = allListings.filter(listing => {
-      const parkingMatch = matchesParkingFilter(listing, filters.parking_filter || "any");
+      // Parking filter — skip if no filter set or "any"
+      const pf = filters.parking_filter;
+      const parkingMatch = !pf || pf === "" ? true : matchesParkingFilter(listing, pf);
+      // Rent period tab
       const listingPeriod = listing.rent_period || "monthly";
       const periodMatch = rentPeriodTab === "all" || listingPeriod === rentPeriodTab;
-      return parkingMatch && periodMatch;
+
+      // Daily date availability filter
+      let dateMatch = true;
+      if (filters.checkin_date && filters.checkout_date && listing.rent_period === "daily") {
+        const checkin = new Date(filters.checkin_date);
+        const checkout = new Date(filters.checkout_date);
+        // Check if listing is available in the requested range
+        if (listing.available_from && new Date(listing.available_from) > checkin) dateMatch = false;
+        if (listing.available_until && new Date(listing.available_until) < checkout) dateMatch = false;
+        // Check blocked dates
+        if (listing.blocked_dates && Array.isArray(listing.blocked_dates)) {
+          const blockedSet = new Set(listing.blocked_dates);
+          const cur = new Date(checkin);
+          while (cur < checkout && dateMatch) {
+            if (blockedSet.has(cur.toISOString().split('T')[0])) dateMatch = false;
+            cur.setDate(cur.getDate() + 1);
+          }
+        }
+      }
+
+      return parkingMatch && periodMatch && dateMatch;
     });
 
     const boosted = filtered.filter(l => l.is_boosted && l.boost_end_at && new Date(l.boost_end_at) > now);
@@ -186,6 +216,7 @@ export default function SearchRooms() {
   const activeFilterCount = useMemo(() => {
     return Object.entries(filters).filter(([k, v]) => {
       if (k === "sort") return false;
+      if (k === "parking_filter" && (!v || v === "" || v === "any")) return false;
       return v && v !== "" && v !== false;
     }).length;
   }, [filters]);

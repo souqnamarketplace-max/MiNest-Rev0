@@ -79,9 +79,9 @@ function createPriceIcon(listing, currency, convertPrice, isActive = false, isHo
       border-top: 6px solid ${bg};
       margin: -1px auto 0;
     "></div>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 30],
-    popupAnchor: [0, -35],
+    iconSize: [80, 36],
+    iconAnchor: [40, 36],
+    popupAnchor: [0, -38],
   });
 }
 
@@ -110,13 +110,19 @@ function createClusterIcon(count) {
   });
 }
 
-// Simple clustering function (grid-based)
+// Simple clustering function (distance-based)
 function clusterListings(listings, zoom) {
-  if (zoom >= 13 || listings.length <= 15) return { markers: listings, clusters: [] };
+  // At very high zoom, never cluster
+  if (zoom >= 15) return { markers: listings, clusters: [] };
 
-  const gridSize = zoom <= 5 ? 3 : zoom <= 8 ? 2 : 1;
+  // Distance threshold decreases as zoom increases (tighter clusters when zoomed in)
+  const thresholds = {
+    3: 8, 4: 5, 5: 3, 6: 2, 7: 1.5, 8: 1, 9: 0.5,
+    10: 0.2, 11: 0.1, 12: 0.05, 13: 0.02, 14: 0.01,
+  };
+  const gridSize = thresholds[Math.min(zoom, 14)] || 0.01;
+
   const grid = {};
-
   listings.forEach(l => {
     const key = `${Math.round(l._lat / gridSize) * gridSize},${Math.round(l._lng / gridSize) * gridSize}`;
     if (!grid[key]) grid[key] = [];

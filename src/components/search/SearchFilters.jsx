@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { RotateCcw, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import {
   LISTING_TYPES, PROPERTY_TYPES, FURNISHING_OPTIONS,
   FLOOR_LEVEL_OPTIONS, LAUNDRY_OPTIONS, AC_HEATING_OPTIONS,
@@ -22,7 +22,9 @@ const defaultFilters = {
   smoking_allowed: false, student_friendly: false,
   lgbtq_friendly: false, couples_allowed: false,
   laundry: "", floor_level: "", ac_heating: "",
-  parking_filter: "any",
+  parking_filter: "",
+  checkin_date: "", checkout_date: "",
+  booking_mode: "",
   sort: "-created_at",
 };
 
@@ -37,6 +39,9 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
     ...filters,
     country: filters.country || country || "",
   }), [filters, country]);
+
+  const isDaily = currentFilters.rent_period === "daily";
+  const isWeekly = currentFilters.rent_period === "weekly";
 
   const regions = useMemo(() =>
     currentFilters.country ? getRegionsForCountry(currentFilters.country) : [],
@@ -54,10 +59,23 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
   const updateFilter = useCallback((key, value) => {
     const updated = { ...currentFilters, [key]: value };
     if (key === "country") updated.province_or_state = "";
+    // Reset daily-specific fields when switching away from daily
+    if (key === "rent_period" && value !== "daily") {
+      updated.checkin_date = "";
+      updated.checkout_date = "";
+      updated.booking_mode = "";
+    }
     onFiltersChange(updated);
   }, [currentFilters, onFiltersChange]);
 
   const resetFilters = useCallback(() => onFiltersChange(defaultFilters), [onFiltersChange]);
+
+  const budgetLabel = useMemo(() => {
+    const curr = getCurrencyByCountry(currentFilters.country || country);
+    if (isDaily) return `Budget (${curr}/night)`;
+    if (isWeekly) return `Budget (${curr}/week)`;
+    return `Budget (${curr})`;
+  }, [currentFilters.country, country, isDaily, isWeekly]);
 
   return (
     <div className="space-y-5">
@@ -107,17 +125,50 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
         </Select>
       </div>
 
+      {/* Daily-specific: Date range + booking mode */}
+      {isDaily && (
+        <div className="space-y-3 bg-accent/5 border border-accent/20 rounded-xl p-3">
+          <h4 className="text-sm font-semibold text-accent flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5" /> Daily rental filters
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">Check-in</label>
+              <Input type="date" className="mt-1 h-8 text-xs"
+                value={currentFilters.checkin_date}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => updateFilter("checkin_date", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Check-out</label>
+              <Input type="date" className="mt-1 h-8 text-xs"
+                value={currentFilters.checkout_date}
+                min={currentFilters.checkin_date || new Date().toISOString().split('T')[0]}
+                onChange={(e) => updateFilter("checkout_date", e.target.value)} />
+            </div>
+          </div>
+          <Select value={currentFilters.booking_mode} onValueChange={(v) => updateFilter("booking_mode", v)}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Any booking type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inquiry">Inquiry only</SelectItem>
+              <SelectItem value="booking_required">Instant booking</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Budget */}
       <div className="space-y-3">
-        <h4 className="text-sm font-semibold text-foreground">
-          Budget ({getCurrencyByCountry(currentFilters.country || country)})
-          {currentFilters.rent_period && ` · ${currentFilters.rent_period}`}
-        </h4>
+        <h4 className="text-sm font-semibold text-foreground">{budgetLabel}</h4>
         <div className="flex gap-2">
-          <Input type="number" min="0" placeholder="Min" value={currentFilters.price_min}
+          <Input type="number" min="0"
+            placeholder={isDaily ? "Min/night" : isWeekly ? "Min/week" : "Min"}
+            value={currentFilters.price_min}
             onChange={(e) => updateFilter("price_min", e.target.value < 0 ? "" : e.target.value)}
             autoComplete="off" name="search_filter_price_min" />
-          <Input type="number" min="0" placeholder="Max" value={currentFilters.price_max}
+          <Input type="number" min="0"
+            placeholder={isDaily ? "Max/night" : isWeekly ? "Max/week" : "Max"}
+            value={currentFilters.price_max}
             onChange={(e) => updateFilter("price_max", e.target.value < 0 ? "" : e.target.value)}
             autoComplete="off" name="search_filter_price_max" />
         </div>
@@ -135,10 +186,9 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
       {/* Parking */}
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-foreground">Parking</h4>
-        <Select value={currentFilters.parking_filter || "any"} onValueChange={(v) => updateFilter("parking_filter", v)}>
-          <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+        <Select value={currentFilters.parking_filter || ""} onValueChange={(v) => updateFilter("parking_filter", v)}>
+          <SelectTrigger><SelectValue placeholder="Any parking" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="any">Any parking</SelectItem>
             <SelectItem value="available">Parking available</SelectItem>
             <SelectItem value="free_included">Free parking</SelectItem>
             <SelectItem value="paid_available">Paid parking</SelectItem>
@@ -155,24 +205,21 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
       </button>
 
       {showMore && (
-        <>
-          {/* Property Features */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-foreground">Property Features</h4>
-            <Select value={currentFilters.laundry} onValueChange={(v) => updateFilter("laundry", v)}>
-              <SelectTrigger><SelectValue placeholder="Laundry" /></SelectTrigger>
-              <SelectContent>{LAUNDRY_OPTIONS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={currentFilters.floor_level} onValueChange={(v) => updateFilter("floor_level", v)}>
-              <SelectTrigger><SelectValue placeholder="Floor level" /></SelectTrigger>
-              <SelectContent>{FLOOR_LEVEL_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={currentFilters.ac_heating} onValueChange={(v) => updateFilter("ac_heating", v)}>
-              <SelectTrigger><SelectValue placeholder="AC / Heating" /></SelectTrigger>
-              <SelectContent>{AC_HEATING_OPTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-        </>
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-foreground">Property Features</h4>
+          <Select value={currentFilters.laundry} onValueChange={(v) => updateFilter("laundry", v)}>
+            <SelectTrigger><SelectValue placeholder="Laundry" /></SelectTrigger>
+            <SelectContent>{LAUNDRY_OPTIONS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={currentFilters.floor_level} onValueChange={(v) => updateFilter("floor_level", v)}>
+            <SelectTrigger><SelectValue placeholder="Floor level" /></SelectTrigger>
+            <SelectContent>{FLOOR_LEVEL_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={currentFilters.ac_heating} onValueChange={(v) => updateFilter("ac_heating", v)}>
+            <SelectTrigger><SelectValue placeholder="AC / Heating" /></SelectTrigger>
+            <SelectContent>{AC_HEATING_OPTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
       )}
 
       {/* Toggles */}
