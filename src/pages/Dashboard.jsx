@@ -328,6 +328,11 @@ export default function Dashboard() {
             <TabsTrigger value="payments" className="flex-1 sm:flex-none rounded-lg px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1">
               <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Payments
             </TabsTrigger>
+            {!isSeeker && (
+              <TabsTrigger value="bookings" className="flex-1 sm:flex-none rounded-lg px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                Bookings
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
