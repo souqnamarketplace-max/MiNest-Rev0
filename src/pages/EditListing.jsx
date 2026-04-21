@@ -24,10 +24,20 @@ export default function EditListing() {
   const [attempted, setAttempted] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
 
-  // Fetch listing
+  // Fetch listing — support both UUID and slug
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
   const { data: listing, isLoading } = useQuery({
     queryKey: ["listing", id],
-    queryFn: () => entities.Listing.get(id),
+    queryFn: async () => {
+      if (isUuid) {
+        return await entities.Listing.get(id);
+      } else {
+        // Query by slug
+        const listings = await entities.Listing.filter({ slug: id });
+        return listings[0] || null;
+      }
+    },
     enabled: !!id,
   });
 
@@ -51,46 +61,49 @@ export default function EditListing() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setAttempted(true);
+
     const editErrors = [];
     if (!formData.title?.trim()) editErrors.push('Title is required');
     if (!formData.rent_amount || Number(formData.rent_amount) <= 0) editErrors.push('Rent amount must be greater than 0');
-    if (editErrors.length > 0) { editErrors.forEach(e => toast.error(e)); return; }
-    setIsSubmitting(true);
 
+    if (editErrors.length > 0) {
+      editErrors.forEach(e => toast.error(e));
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       // Track price change for history
       const oldPrice = listing.rent_amount || listing.monthly_rent;
       const newPrice = formData.rent_amount || formData.monthly_rent;
-      const priceHistoryEntry = oldPrice !== newPrice ? {
-        amount: newPrice,
-        period: formData.rent_period || "monthly",
-        changed_at: new Date().toISOString(),
-        previous_amount: oldPrice
-      } : null;
+      const priceHistoryEntry = oldPrice !== newPrice
+        ? { amount: newPrice, period: formData.rent_period || "monthly", changed_at: new Date().toISOString(), previous_amount: oldPrice }
+        : null;
 
-      const updateData = { 
+      const updateData = {
         ...changes,
         // Fix: convert empty date strings to null to avoid DB type errors
         ...(changes.available_from !== undefined && { available_from: changes.available_from || null }),
         ...(changes.move_in_date !== undefined && { move_in_date: changes.move_in_date || null }),
       };
+
       if (priceHistoryEntry) {
         updateData.price_history = [...(listing.price_history || []), priceHistoryEntry];
       }
 
-      // Update listing
-      await entities.Listing.update(id, updateData);
+      // Update listing using the actual listing ID (UUID), not the slug
+      await entities.Listing.update(listing.id, updateData);
 
       // Trigger notification function
       await invokeFunction('listings/updated', {
-        listing_id: id,
+        listing_id: listing.id,
         old_data: listing,
         new_data: { ...listing, ...updateData }
       });
 
       toast.success("Listing updated successfully");
       queryClient.invalidateQueries({ queryKey: ["listing", id] });
-      navigate(`/listing/${formData?.slug || id}`);
+      navigate(`/listing/${formData?.slug || listing.id}`);
     } catch (error) {
       console.error("Error updating listing:", error?.message || error);
       toast.error(error?.message || "Failed to update listing. Please check all fields.");
@@ -117,15 +130,10 @@ export default function EditListing() {
             <div className="flex items-center justify-between gap-2 mb-2">
               <Label className="flex-1">Title</Label>
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
+                type="button" variant="ghost" size="sm"
                 className="text-xs text-accent hover:bg-accent/10 h-7 px-2 whitespace-nowrap flex-shrink-0"
                 onClick={async () => {
-                  if (!formData.title?.trim()) {
-                    toast.error("Write a title first to rewrite");
-                    return;
-                  }
+                  if (!formData.title?.trim()) { toast.error("Write a title first to rewrite"); return; }
                   setGeneratingTitle(true);
                   const res = await invokeLLM({
                     prompt: `Rewrite this room listing title to be more compelling and catchy. Return ONLY the new title text, no quotes, no labels, no markdown, max 60 characters. Original: "${formData.title}"`,
@@ -140,7 +148,8 @@ export default function EditListing() {
               </Button>
             </div>
             <Input
-              id="edit-title" name="title" value={formData.title || ""}
+              id="edit-title" name="title"
+              value={formData.title || ""}
               onChange={(e) => handleChange("title", e.target.value.slice(0, 80))}
               required
               className={`mt-1 ${attempted && !formData.title?.trim() ? "border-destructive" : ""}`}
@@ -154,15 +163,10 @@ export default function EditListing() {
             <div className="flex items-center justify-between gap-2 mb-2">
               <Label className="flex-1">Description</Label>
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
+                type="button" variant="ghost" size="sm"
                 className="text-xs text-accent hover:bg-accent/10 h-7 px-2 whitespace-nowrap flex-shrink-0"
                 onClick={async () => {
-                  if (!formData.description?.trim()) {
-                    toast.error("Write a description first to rewrite");
-                    return;
-                  }
+                  if (!formData.description?.trim()) { toast.error("Write a description first to rewrite"); return; }
                   setGeneratingDescription(true);
                   const res = await invokeLLM({
                     prompt: `Rewrite this room listing description to be more compelling and engaging. Return ONLY the rewritten description text, no labels, no markdown. Original: "${formData.description}"`,
@@ -190,8 +194,7 @@ export default function EditListing() {
             <div>
               <Label>Rent Amount</Label>
               <Input
-                type="number"
-                min="0"
+                type="number" min="0"
                 value={formData.rent_amount || formData.monthly_rent || ""}
                 onChange={(e) => handleChange("rent_amount", Math.max(0, parseFloat(e.target.value)) || "")}
                 required
@@ -244,7 +247,8 @@ export default function EditListing() {
               <div className="text-sm">
                 <p className="font-medium text-accent mb-1">Price History</p>
                 <p className="text-muted-foreground">
-                  This listing has {listing.price_history.length} price change{listing.price_history.length !== 1 ? "s" : ""}. Users who favorited this listing will be notified of price changes.
+                  This listing has {listing.price_history.length} price change{listing.price_history.length !== 1 ? "s" : ""}.
+                  Users who favorited this listing will be notified of price changes.
                 </p>
               </div>
             </div>
@@ -253,7 +257,8 @@ export default function EditListing() {
           {/* Submit */}
           <div className="flex gap-3">
             <Button type="submit" disabled={isSubmitting} className="gap-2">
-              <Save className="w-4 h-4" /> {isSubmitting ? "Saving..." : "Save Changes"}
+              <Save className="w-4 h-4" />
+              {isSubmitting ? "Saving..." : "Save Changes"}
             </Button>
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
               Cancel

@@ -215,9 +215,15 @@ export default function CreateListing() {
 
     const parkingData = prepareParkingDataForSubmit(form);
 
+    // Sanitize: convert empty strings to null for columns with CHECK constraints
+    // DB has CHECK constraints on: bathroom_type, furnishing, listing_type, 
+    // parking_price_period, parking_status, parking_type, rent_period, status
+    const emptyToNull = (val) => (val === "" || val === undefined) ? null : val;
+
     const data = {
       ...form,
       available_from: form.available_from || null,
+      move_in_date: form.move_in_date || null,
       owner_user_id: user.id,
       slug: generateSlug(form.title + "-" + form.city),
       rent_amount,
@@ -232,6 +238,12 @@ export default function CreateListing() {
       longitude: lng || null,
       photo_count: form.photos.length,
       status,
+      // CHECK-constrained columns: empty string → null
+      bathroom_type: emptyToNull(form.bathroom_type),
+      furnishing: emptyToNull(form.furnishing),
+      property_type: emptyToNull(form.property_type),
+      occupation_preference: emptyToNull(form.occupation_preference),
+      cleanliness_preference: emptyToNull(form.cleanliness_preference),
       ...parkingData,
     };
 
@@ -294,6 +306,13 @@ export default function CreateListing() {
       const amount = Number(form.rent_amount);
       if (!form.rent_amount || amount <= 0) errors.push("Rent Amount must be greater than 0");
       if (!form.rent_period) errors.push("Rent Period is required");
+      return errors;
+    }
+    if (step === 3) {
+      const errors = [];
+      if (!form.property_type) errors.push("Property Type is required");
+      if (!form.furnishing) errors.push("Furnishing is required");
+      if (!form.bathroom_type) errors.push("Bathroom Type is required");
       return errors;
     }
     return [];
@@ -558,24 +577,24 @@ export default function CreateListing() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Property Type</Label>
+                <Label>Property Type <span className="text-destructive">*</span></Label>
                 <Select value={form.property_type} onValueChange={(v) => update("property_type", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className={`mt-1 ${attempted && !form.property_type ? "border-destructive" : ""}`}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>{PROPERTY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Furnishing</Label>
+                <Label>Furnishing <span className="text-destructive">*</span></Label>
                 <Select value={form.furnishing} onValueChange={(v) => update("furnishing", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className={`mt-1 ${attempted && !form.furnishing ? "border-destructive" : ""}`}><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>{FURNISHING_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label>Bathroom</Label>
+              <Label>Bathroom <span className="text-destructive">*</span></Label>
               <Select value={form.bathroom_type} onValueChange={(v) => update("bathroom_type", v)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectTrigger className={`mt-1 ${attempted && !form.bathroom_type ? "border-destructive" : ""}`}><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>{BATHROOM_TYPES.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
