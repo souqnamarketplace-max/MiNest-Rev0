@@ -304,7 +304,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
           return null;
         })
       );
-      setResolvedListings(results.filter(Boolean));
+      setResolvedListings(results.filter(r => r && r._lat && r._lng && isFinite(r._lat) && isFinite(r._lng)));
     };
     resolve();
   }, [listings]);
@@ -317,8 +317,8 @@ export default function MapView({ listings, filters, onListingHover, activeListi
 
   const center = useMemo(() => {
     if (resolvedListings.length === 0) return [53.5, -113.5];
-    const avgLat = resolvedListings.reduce((s, l) => s + l._lat, 0) / resolvedListings.length;
-    const avgLng = resolvedListings.reduce((s, l) => s + l._lng, 0) / resolvedListings.length;
+    const avgLat = resolvedListings.reduce((s, l) => s + (l._lat || 0), 0) / resolvedListings.length;
+    const avgLng = resolvedListings.reduce((s, l) => s + (l._lng || 0), 0) / resolvedListings.length;
     return [avgLat, avgLng];
   }, [resolvedListings]);
 
