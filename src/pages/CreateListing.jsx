@@ -26,34 +26,80 @@ export default function CreateListing() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isComplete, missingFields } = useProfileCheck("lister");
+
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [generatingTitle, setGeneratingTitle] = useState(false);
+
   const [form, setForm] = useState({
-    listing_type: "", title: "", description: "",
-    country: "", province_or_state: "", city: "", neighborhood: "", street_address: "", postal_or_zip: "",
-    latitude: null, longitude: null,
-    rent_amount: "", rent_period: "monthly", currency_code: "CAD", deposit_amount: "", bills_included: false,
-    available_from: "", minimum_stay_months: "", maximum_stay_months: "",
-    property_type: "", furnishing: "", bathroom_type: "",
-    parking_status: "not_available", parking_type: "", parking_price: "", parking_price_period: "monthly", parking_notes: "",
+    listing_type: "",
+    title: "",
+    description: "",
+    country: "",
+    province_or_state: "",
+    city: "",
+    neighborhood: "",
+    street_address: "",
+    postal_or_zip: "",
+    latitude: null,
+    longitude: null,
+    rent_amount: "",
+    rent_period: "monthly",
+    currency_code: "CAD",
+    deposit_amount: "",
+    bills_included: false,
+    available_from: "",
+    minimum_stay_months: "",
+    maximum_stay_months: "",
+    property_type: "",
+    furnishing: "",
+    bathroom_type: "",
+    parking_status: "not_available",
+    parking_type: "",
+    parking_price: "",
+    parking_price_period: "monthly",
+    parking_notes: "",
     internet_included: false,
-    pets_allowed: false, smoking_allowed: false, couples_allowed: false,
-    student_friendly: false, lgbtq_friendly: false,
-    gender_preference: "any", age_preference_min: "", age_preference_max: "",
-    occupation_preference: "", cleanliness_preference: "",
-    photos: [], cover_photo_url: "",
-    viewing_enabled: true, minimum_notice_hours: 24, viewing_duration_minutes: 30, owner_viewing_instructions: "",
+    pets_allowed: false,
+    smoking_allowed: false,
+    couples_allowed: false,
+    student_friendly: false,
+    lgbtq_friendly: false,
+    gender_preference: "any",
+    age_preference_min: "",
+    age_preference_max: "",
+    occupation_preference: "",
+    cleanliness_preference: "",
+    photos: [],
+    cover_photo_url: "",
+    viewing_enabled: true,
+    minimum_notice_hours: 24,
+    viewing_duration_minutes: 30,
+    owner_viewing_instructions: "",
   });
 
   const update = (key, value) => {
     const updated = { ...form, [key]: value };
     if (key === "country") {
       updated.province_or_state = "";
+      updated.city = "";
+      updated.neighborhood = "";
+      updated.street_address = "";
+      updated.postal_or_zip = "";
+      updated.latitude = null;
+      updated.longitude = null;
       updated.currency_code = getCurrencyForCountry(value);
+    }
+    if (key === "province_or_state") {
+      updated.city = "";
+      updated.neighborhood = "";
+      updated.street_address = "";
+      updated.postal_or_zip = "";
+      updated.latitude = null;
+      updated.longitude = null;
     }
     setForm(updated);
   };
@@ -95,8 +141,6 @@ export default function CreateListing() {
     }));
   };
 
-  // Hybrid approval: first listing from new user → pending_review
-  // Verified users (have previous active/approved listings) → active immediately
   const determineListingStatus = async (requestedStatus) => {
     if (requestedStatus === "draft") return "draft";
     try {
@@ -106,12 +150,10 @@ export default function CreateListing() {
         .eq("owner_user_id", user.id)
         .in("status", ["active", "rented", "paused", "expired"])
         .limit(1);
-      // If user has any previous approved listing → auto-active
       if (existing && existing.length > 0) return "active";
-      // First listing ever → pending_review
       return "pending_review";
     } catch {
-      return "pending_review"; // Safe default
+      return "pending_review";
     }
   };
 
@@ -128,8 +170,6 @@ export default function CreateListing() {
       toast.error("Please upload at least 4 photos.");
       return;
     }
-    
-    // Validate parking
     if (form.parking_status === "free_included" && !form.parking_type) {
       toast.error("Please select a parking type for free parking.");
       return;
@@ -148,11 +188,11 @@ export default function CreateListing() {
         return;
       }
     }
-    
+
     setSaving(true);
     let lat = form.latitude;
     let lng = form.longitude;
-    // Geocode address if not already done
+
     if (!lat || !lng) {
       const coords = await geocodeAddress();
       if (!coords && status === "active") {
@@ -164,19 +204,19 @@ export default function CreateListing() {
         lng = coords.lng;
       }
     }
+
     const rent_amount = Number(form.rent_amount) || 0;
     const rent_period = form.rent_period || "monthly";
-    const rent_normalized_monthly = 
-      rent_period === "weekly" ? rent_amount * 4.33 :
-      rent_period === "daily" ? rent_amount * 30 :
-      rent_amount;
+    const rent_normalized_monthly = rent_period === "weekly"
+      ? rent_amount * 4.33
+      : rent_period === "daily"
+      ? rent_amount * 30
+      : rent_amount;
 
-    // Clean and prepare parking data
     const parkingData = prepareParkingDataForSubmit(form);
 
     const data = {
       ...form,
-      // Fix: convert empty date strings to null to avoid DB type errors
       available_from: form.available_from || null,
       move_in_date: form.move_in_date || null,
       owner_user_id: user.id,
@@ -195,13 +235,13 @@ export default function CreateListing() {
       status,
       ...parkingData,
     };
-    // Determine final status based on user history
+
     const finalStatus = await determineListingStatus(status);
     const expiresAt = (finalStatus === 'active' || finalStatus === 'pending_review')
       ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       : null;
-    const finalData = { ...data, status: finalStatus, expires_at: expiresAt };
 
+    const finalData = { ...data, status: finalStatus, expires_at: expiresAt };
     await entities.Listing.create(finalData);
 
     if (finalStatus === "draft") {
@@ -211,7 +251,6 @@ export default function CreateListing() {
     } else {
       toast.success("Listing published successfully!");
     }
-
     navigate("/dashboard");
     setSaving(false);
   };
@@ -287,9 +326,11 @@ export default function CreateListing() {
               onClick={() => i < step && setStep(i)}
               aria-label={`Go to step ${i + 1}: ${s}`}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                i === step ? "bg-accent text-white font-semibold" :
-                i < step ? "bg-accent/10 text-accent cursor-pointer" :
-                "bg-muted text-muted-foreground"
+                i === step
+                  ? "bg-accent text-white font-semibold"
+                  : i < step
+                  ? "bg-accent/10 text-accent cursor-pointer"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               {i < step ? <Check className="w-3 h-3 inline mr-1" /> : null}{s}
@@ -314,15 +355,10 @@ export default function CreateListing() {
               <div className="flex items-center justify-between gap-2 mb-2">
                 <Label className="flex-1">Title *</Label>
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
+                  type="button" variant="ghost" size="sm"
                   className="text-xs text-accent hover:bg-accent/10 h-7 px-2 whitespace-nowrap flex-shrink-0"
                   onClick={async () => {
-                    if (!form.title.trim()) {
-                      toast.error("Write a title first to rewrite");
-                      return;
-                    }
+                    if (!form.title.trim()) { toast.error("Write a title first to rewrite"); return; }
                     setGeneratingTitle(true);
                     const res = await invokeLLM({
                       prompt: `Rewrite this room listing title to be more compelling and catchy. Return ONLY the new title text, no quotes, no labels, no markdown, max 60 characters. Original: "${form.title}"`,
@@ -337,22 +373,24 @@ export default function CreateListing() {
                   {generatingTitle ? "Rewriting..." : "AI Rewrite"}
                 </Button>
               </div>
-              <Input className={`mt-1 ${fieldError(form.title) ? "border-destructive" : ""}`} id="listing-title" name="title" placeholder="e.g., Bright room near downtown" value={form.title} onChange={(e) => update("title", e.target.value.slice(0, 80))} maxLength={80} />
+              <Input
+                className={`mt-1 ${fieldError(form.title) ? "border-destructive" : ""}`}
+                id="listing-title" name="title"
+                placeholder="e.g., Bright room near downtown"
+                value={form.title}
+                onChange={(e) => update("title", e.target.value.slice(0, 80))}
+                maxLength={80}
+              />
               <p className="text-xs text-muted-foreground text-right mt-1">{form.title?.length || 0}/80</p>
             </div>
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <Label className="flex-1">Description</Label>
                 <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
+                  type="button" variant="ghost" size="sm"
                   className="text-xs text-accent hover:bg-accent/10 h-7 px-2 whitespace-nowrap flex-shrink-0"
                   onClick={async () => {
-                    if (!form.description.trim()) {
-                      toast.error("Write a description first to rewrite");
-                      return;
-                    }
+                    if (!form.description.trim()) { toast.error("Write a description first to rewrite"); return; }
                     setGeneratingDescription(true);
                     const res = await invokeLLM({
                       prompt: `Rewrite this room listing description to be more compelling and engaging. Return ONLY the rewritten description text, no labels, no markdown. Original: "${form.description}"`,
@@ -367,7 +405,13 @@ export default function CreateListing() {
                   {generatingDescription ? "Rewriting..." : "AI Rewrite"}
                 </Button>
               </div>
-              <Textarea className="min-h-[120px]" id="listing-description" name="description" placeholder="Describe your room..." value={form.description} onChange={(e) => update("description", e.target.value.slice(0, 1000))} maxLength={1000} />
+              <Textarea
+                className="min-h-[120px]" id="listing-description" name="description"
+                placeholder="Describe your room..."
+                value={form.description}
+                onChange={(e) => update("description", e.target.value.slice(0, 1000))}
+                maxLength={1000}
+              />
               <p className="text-xs text-muted-foreground text-right mt-1">{form.description?.length || 0}/1000</p>
             </div>
           </div>
@@ -376,20 +420,25 @@ export default function CreateListing() {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <Label>Country *</Label>
+              <Label>Country <span className="text-destructive">*</span></Label>
               <Select value={form.country} onValueChange={(v) => update("country", v)}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select country" /></SelectTrigger>
+                <SelectTrigger className={`mt-1 ${attempted && !form.country ? "border-destructive" : ""}`}>
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Canada">🇨🇦 Canada</SelectItem>
                   <SelectItem value="USA">🇺🇸 USA</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {regions.length > 0 && (
+
+            {form.country && (
               <div>
-                <Label>Province / State *</Label>
+                <Label>Province / State <span className="text-destructive">*</span></Label>
                 <Select value={form.province_or_state} onValueChange={(v) => update("province_or_state", v)}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className={`mt-1 ${attempted && !form.province_or_state ? "border-destructive" : ""}`}>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
                   <SelectContent>{regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                 </Select>
                 {isQuebec(form.province_or_state) && (
@@ -397,42 +446,78 @@ export default function CreateListing() {
                 )}
               </div>
             )}
-            <div>
-              <Label>Street Address *</Label>
-              <AddressAutocomplete
-                value={form.street_address}
-                placeholder="e.g., 123 Main Street"
-                countryFilter={form.country === 'Canada' ? 'ca' : form.country === 'United States' ? 'us' : undefined}
-                onChange={(parsed) => {
-                  setForm(prev => ({
-                    ...prev,
-                    street_address: parsed.street_address || prev.street_address,
-                    city: parsed.city || prev.city,
-                    neighborhood: parsed.neighborhood || prev.neighborhood,
-                    province_or_state: normalizeProvince(parsed.province_or_state) || prev.province_or_state,
-                    postal_or_zip: parsed.postal_or_zip || prev.postal_or_zip,
-                    latitude: parsed.latitude || prev.latitude,
-                    longitude: parsed.longitude || prev.longitude,
-                  }));
-                }}
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">🔍 Search your address — city, province and postal code will auto-fill automatically</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-              <Label>City *</Label>
-              <Input className={`mt-1 ${fieldError(form.city) ? "border-destructive" : ""}`} value={form.city} onChange={(e) => update("city", e.target.value)} /></div>
-              <div><Label>Neighborhood</Label><Input className="mt-1" value={form.neighborhood} onChange={(e) => update("neighborhood", e.target.value)} /></div>
-            </div>
-            <div><Label>Postal / ZIP Code *</Label><Input className={`mt-1 ${fieldError(form.postal_or_zip) ? "border-destructive" : ""}`} value={form.postal_or_zip} onChange={(e) => update("postal_or_zip", e.target.value)} /></div>
+
+            {form.province_or_state && !isQuebec(form.province_or_state) && (
+              <>
+                <div>
+                  <Label>Street Address <span className="text-destructive">*</span></Label>
+                  <AddressAutocomplete
+                    value={form.street_address}
+                    placeholder="e.g., 123 Main Street"
+                    countryFilter={form.country === 'Canada' ? 'ca' : form.country === 'USA' ? 'us' : undefined}
+                    onChange={(parsed) => {
+                      const parsedProvince = normalizeProvince(parsed.province_or_state);
+                      // Only accept if matches selected province
+                      if (parsedProvince && parsedProvince !== form.province_or_state) {
+                        toast.error(`This address is in ${parsedProvince}, not ${form.province_or_state}. Please enter an address in ${form.province_or_state}.`);
+                        return;
+                      }
+                      setForm(prev => ({
+                        ...prev,
+                        street_address: parsed.street_address || prev.street_address,
+                        city: parsed.city || prev.city,
+                        neighborhood: parsed.neighborhood || prev.neighborhood,
+                        postal_or_zip: parsed.postal_or_zip || prev.postal_or_zip,
+                        latitude: parsed.latitude || prev.latitude,
+                        longitude: parsed.longitude || prev.longitude,
+                      }));
+                    }}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">🔍 Search your address — city, postal code will auto-fill automatically</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>City <span className="text-destructive">*</span></Label>
+                    <Input
+                      className={`mt-1 ${fieldError(form.city) ? "border-destructive" : ""}`}
+                      value={form.city}
+                      onChange={(e) => update("city", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Neighborhood</Label>
+                    <Input className="mt-1" value={form.neighborhood} onChange={(e) => update("neighborhood", e.target.value)} />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Postal / ZIP Code <span className="text-destructive">*</span></Label>
+                  <Input
+                    className={`mt-1 ${fieldError(form.postal_or_zip) ? "border-destructive" : ""}`}
+                    value={form.postal_or_zip}
+                    placeholder={form.country === 'Canada' ? 'e.g. T3P 1C5' : 'e.g. 90210'}
+                    onChange={(e) => update("postal_or_zip", e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
 
         {step === 2 && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-4 items-end">
-              <div><Label>Rent Amount ({form.currency_code}) *</Label><Input className={`mt-1 ${attempted && (!form.rent_amount || Number(form.rent_amount) <= 0) ? "border-destructive" : ""}`} type="number" min="0" value={form.rent_amount} onChange={(e) => update("rent_amount", Math.max(0, Number(e.target.value)) || "")} /></div>
+              <div>
+                <Label>Rent Amount ({form.currency_code}) *</Label>
+                <Input
+                  className={`mt-1 ${attempted && (!form.rent_amount || Number(form.rent_amount) <= 0) ? "border-destructive" : ""}`}
+                  type="number" min="0"
+                  value={form.rent_amount}
+                  onChange={(e) => update("rent_amount", Math.max(0, Number(e.target.value)) || "")}
+                />
+              </div>
               <div>
                 <Label>Rent Period *</Label>
                 <Select value={form.rent_period} onValueChange={(v) => update("rent_period", v)}>
@@ -444,10 +529,19 @@ export default function CreateListing() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Deposit</Label><Input className="mt-1" type="number" min="0" value={form.deposit_amount} onChange={(e) => update("deposit_amount", Math.max(0, Number(e.target.value)) || "")} /></div>
+              <div>
+                <Label>Deposit</Label>
+                <Input className="mt-1" type="number" min="0" value={form.deposit_amount} onChange={(e) => update("deposit_amount", Math.max(0, Number(e.target.value)) || "")} />
+              </div>
             </div>
-            <div className="flex items-center justify-between"><Label>Bills Included</Label><Switch checked={form.bills_included} onCheckedChange={(v) => update("bills_included", v)} /></div>
-            <div><Label>Available From</Label><Input className="mt-1" type="date" value={form.available_from} onChange={(e) => update("available_from", e.target.value)} /></div>
+            <div className="flex items-center justify-between">
+              <Label>Bills Included</Label>
+              <Switch checked={form.bills_included} onCheckedChange={(v) => update("bills_included", v)} />
+            </div>
+            <div>
+              <Label>Available From</Label>
+              <Input className="mt-1" type="date" value={form.available_from} onChange={(e) => update("available_from", e.target.value)} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Min Stay ({form.rent_period === "weekly" ? "weeks" : form.rent_period === "daily" ? "days" : "months"})</Label>
@@ -582,7 +676,12 @@ export default function CreateListing() {
                 </div>
                 <div>
                   <Label>Viewing Instructions (optional)</Label>
-                  <Textarea className="mt-1 min-h-[80px]" placeholder="e.g., Park on the street, ring bell #3, or provide any special instructions..." value={form.owner_viewing_instructions} onChange={(e) => update("owner_viewing_instructions", e.target.value)} />
+                  <Textarea
+                    className="mt-1 min-h-[80px]"
+                    placeholder="e.g., Park on the street, ring bell #3, or provide any special instructions..."
+                    value={form.owner_viewing_instructions}
+                    onChange={(e) => update("owner_viewing_instructions", e.target.value)}
+                  />
                 </div>
               </>
             )}
@@ -591,12 +690,18 @@ export default function CreateListing() {
 
         {step === 6 && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Upload at least 4 photos and up to {APP_CONFIG.maxPhotos} total (max {APP_CONFIG.maxImageSizeMB}MB each). {form.photos.length < 4 && <span className="text-destructive font-medium">{4 - form.photos.length} more needed</span>}</p>
+            <p className="text-sm text-muted-foreground">
+              Upload at least 4 photos and up to {APP_CONFIG.maxPhotos} total (max {APP_CONFIG.maxImageSizeMB}MB each).
+              {form.photos.length < 4 && <span className="text-destructive font-medium"> {4 - form.photos.length} more needed</span>}
+            </p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {form.photos.map((url, i) => (
                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
                   <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button onClick={() => removePhoto(i)} className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
                     <X className="w-3 h-3" />
                   </button>
                   {form.cover_photo_url === url && (
@@ -642,11 +747,20 @@ export default function CreateListing() {
             </Button>
           )}
           {step < 7 ? (
-            <Button onClick={handleNext} disabled={false} aria-label={`Next: ${STEPS[step + 1] || "Review"}`} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button
+              onClick={handleNext}
+              disabled={false}
+              aria-label={`Next: ${STEPS[step + 1] || "Review"}`}
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
               Next <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={() => handlePublish("active")} disabled={saving} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button
+              onClick={() => handlePublish("active")}
+              disabled={saving}
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
               {saving ? "Publishing..." : "Publish Listing"}
             </Button>
           )}

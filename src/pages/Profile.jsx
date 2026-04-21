@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { getRegionsForCountry, getAvatarFallback } from "@/lib/geoHelpers";
 import { isProfileComplete, getMissingFields, formatFieldName } from "@/lib/profileValidation";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
-import { normalizeProvince } from "@/lib/addressValidation";
+import { normalizeProvince, validatePostalMatchesRegion } from "@/lib/addressValidation";
 import { compressImage } from "@/lib/imageCompression";
 import { toast } from "sonner";
 
@@ -29,7 +29,6 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
-      // Soft delete - mark account as deleted and sign out
       const profiles = await entities.UserProfile.filter({ user_id: user.id });
       if (profiles[0]) {
         await entities.UserProfile.update(profiles[0].id, { account_status: 'deleted' });
@@ -49,10 +48,17 @@ export default function Profile() {
   });
 
   const profile = profiles[0];
+
   const [form, setForm] = useState({
-    full_name: "", display_name: "", bio: "",
-    phone: "", country: "", province_or_state: "", city: "",
-    postal_or_zip: "", avatar_url: "",
+    full_name: "",
+    display_name: "",
+    bio: "",
+    phone: "",
+    country: "",
+    province_or_state: "",
+    city: "",
+    postal_or_zip: "",
+    avatar_url: "",
   });
 
   useEffect(() => {
@@ -73,7 +79,15 @@ export default function Profile() {
 
   const update = (key, value) => {
     const updated = { ...form, [key]: value };
-    if (key === "country") updated.province_or_state = "";
+    if (key === "country") {
+      updated.province_or_state = "";
+      updated.city = "";
+      updated.postal_or_zip = "";
+    }
+    if (key === "province_or_state") {
+      updated.city = "";
+      updated.postal_or_zip = "";
+    }
     setForm(updated);
   };
 
@@ -89,15 +103,31 @@ export default function Profile() {
 
   const handleSave = async () => {
     setAttempted(true);
+
     // Validate mandatory fields
     const missing = [];
     if (!form.full_name?.trim()) missing.push("Full Name");
     if (!form.phone?.trim()) missing.push("Phone");
+    if (!form.country) missing.push("Country");
+    if (!form.province_or_state) missing.push("Province / State");
     if (!form.city?.trim()) missing.push("City");
 
     if (missing.length > 0) {
       toast.error(`Required fields: ${missing.join(", ")}`);
       return;
+    }
+
+    // Validate postal code matches province/state if provided
+    if (form.postal_or_zip?.trim()) {
+      const postalCheck = validatePostalMatchesRegion(
+        form.postal_or_zip,
+        form.province_or_state,
+        form.country
+      );
+      if (!postalCheck.valid) {
+        toast.error(postalCheck.error);
+        return;
+      }
     }
 
     setSaving(true);
@@ -137,7 +167,15 @@ export default function Profile() {
 
         <div>
           <Label>Full Name <span className="text-destructive">*</span></Label>
-          <Input id="full-name" name="full_name" autoComplete="name" value={form.full_name} className={`mt-1 ${attempted && !form.full_name?.trim() ? "border-destructive" : ""}`} onChange={(e) => update("full_name", e.target.value)} placeholder="Your full name" />
+          <Input
+            id="full-name"
+            name="full_name"
+            autoComplete="name"
+            value={form.full_name}
+            className={`mt-1 ${attempted && !form.full_name?.trim() ? "border-destructive" : ""}`}
+            onChange={(e) => update("full_name", e.target.value)}
+            placeholder="Your full name"
+          />
         </div>
 
         <div><Label>Display Name</Label><Input className="mt-1" id="display-name" name="display_name" value={form.display_name} onChange={(e) => update("display_name", e.target.value)} /></div>
@@ -146,15 +184,10 @@ export default function Profile() {
           <div className="flex items-center justify-between gap-2 mb-2">
             <Label className="flex-1">Bio</Label>
             <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+              type="button" variant="ghost" size="sm"
               className="text-xs text-accent hover:bg-accent/10 h-7 px-2 whitespace-nowrap flex-shrink-0"
               onClick={async () => {
-                if (!form.bio?.trim()) {
-                  toast.error("Write a bio first to rewrite");
-                  return;
-                }
+                if (!form.bio?.trim()) { toast.error("Write a bio first to rewrite"); return; }
                 setGeneratingBio(true);
                 const res = await invokeLLM({
                   prompt: `Rewrite this roommate profile bio to be more engaging and friendly. Return ONLY the rewritten bio text, no labels, no markdown, no quotes. Original: "${form.bio}"`,
@@ -172,13 +205,18 @@ export default function Profile() {
           <p className="text-xs text-muted-foreground text-right mt-1">{form.bio?.length || 0}/500</p>
         </div>
 
-        <div><Label>Phone <span className="text-destructive">*</span></Label><Input id="phone" name="phone" autoComplete="tel" value={form.phone} className={`mt-1 ${attempted && !form.phone?.trim() ? "border-destructive" : ""}`} onChange={(e) => update("phone", e.target.value)} placeholder="Required" /></div>
+        <div>
+          <Label>Phone <span className="text-destructive">*</span></Label>
+          <Input id="phone" name="phone" autoComplete="tel" value={form.phone} className={`mt-1 ${attempted && !form.phone?.trim() ? "border-destructive" : ""}`} onChange={(e) => update("phone", e.target.value)} placeholder="Required" />
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label>Country</Label>
+            <Label>Country <span className="text-destructive">*</span></Label>
             <Select value={form.country} onValueChange={(v) => update("country", v)}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectTrigger className={`mt-1 ${attempted && !form.country ? "border-destructive" : ""}`}>
+                <SelectValue placeholder="Select country" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Canada">🇨🇦 Canada</SelectItem>
                 <SelectItem value="USA">🇺🇸 USA</SelectItem>
@@ -186,9 +224,15 @@ export default function Profile() {
             </Select>
           </div>
           <div>
-            <Label>Province / State</Label>
-            <Select value={form.province_or_state} onValueChange={(v) => update("province_or_state", v)}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+            <Label>Province / State <span className="text-destructive">*</span></Label>
+            <Select
+              value={form.province_or_state}
+              onValueChange={(v) => update("province_or_state", v)}
+              disabled={!form.country}
+            >
+              <SelectTrigger className={`mt-1 ${attempted && !form.province_or_state ? "border-destructive" : ""}`}>
+                <SelectValue placeholder={form.country ? "Select" : "Select country first"} />
+              </SelectTrigger>
               <SelectContent>{regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -198,30 +242,65 @@ export default function Profile() {
           <div>
             <Label>City <span className="text-destructive">*</span></Label>
             <AddressAutocomplete
-              id="city" name="city" value={form.city}
-              placeholder="Start typing your city..."
-              countryFilter={form.country === 'Canada' ? 'ca' : form.country === 'United States' ? 'us' : undefined}
+              id="city"
+              name="city"
+              value={form.city}
+              placeholder={form.province_or_state ? "Start typing your city..." : "Select province first"}
+              disabled={!form.province_or_state}
+              countryFilter={form.country === 'Canada' ? 'ca' : form.country === 'USA' ? 'us' : undefined}
               onChange={(parsed) => {
+                const parsedProvince = normalizeProvince(parsed.province_or_state);
+                // Only accept city if it matches selected province/state
+                if (parsedProvince && parsedProvince !== form.province_or_state) {
+                  toast.error(`"${parsed.city}" is in ${parsedProvince}, not ${form.province_or_state}. Please select a city in ${form.province_or_state}.`);
+                  return;
+                }
                 setForm(prev => ({
                   ...prev,
                   city: parsed.city || prev.city,
-                  province_or_state: normalizeProvince(parsed.province_or_state) || prev.province_or_state,
                   postal_or_zip: parsed.postal_or_zip || prev.postal_or_zip,
                 }));
               }}
               className="mt-1"
             />
           </div>
-          <div><Label>Postal / ZIP</Label><Input className="mt-1" id="postal" name="postal_or_zip" autoComplete="postal-code" value={form.postal_or_zip} onChange={(e) => update("postal_or_zip", e.target.value)} /></div>
+          <div>
+            <Label>Postal / ZIP</Label>
+            <Input
+              className={`mt-1 ${attempted && form.postal_or_zip?.trim() && (() => {
+                const check = validatePostalMatchesRegion(form.postal_or_zip, form.province_or_state, form.country);
+                return !check.valid;
+              })() ? "border-destructive" : ""}`}
+              id="postal"
+              name="postal_or_zip"
+              autoComplete="postal-code"
+              value={form.postal_or_zip}
+              placeholder={form.country === 'Canada' ? 'e.g. T3P 1C5' : form.country === 'USA' ? 'e.g. 90210' : ''}
+              disabled={!form.province_or_state}
+              onChange={(e) => update("postal_or_zip", e.target.value)}
+            />
+            {form.postal_or_zip?.trim() && form.province_or_state && (() => {
+              const check = validatePostalMatchesRegion(form.postal_or_zip, form.province_or_state, form.country);
+              return !check.valid ? (
+                <p className="text-destructive text-xs mt-1">{check.error}</p>
+              ) : null;
+            })()}
+          </div>
         </div>
+
+        {!form.country && attempted && (
+          <p className="text-destructive text-sm">Please select a country to fill in your location details.</p>
+        )}
 
         <div className="flex flex-wrap gap-3">
           <Button onClick={handleSave} disabled={saving} className="bg-accent hover:bg-accent/90 text-accent-foreground min-h-[44px]">
-            <Save className="w-4 h-4 mr-1" /> {saving ? "Saving..." : "Save Profile"}
+            <Save className="w-4 h-4 mr-1" />
+            {saving ? "Saving..." : "Save Profile"}
           </Button>
           <Button variant="outline" onClick={() => logout('/')} className="min-h-[44px]">
             <LogOut className="w-4 h-4 mr-1" /> Sign Out
           </Button>
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive min-h-[44px]">
@@ -237,11 +316,7 @@ export default function Profile() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  disabled={deleting}
-                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                >
+                <AlertDialogAction onClick={handleDeleteAccount} disabled={deleting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                   {deleting ? "Deleting..." : "Yes, delete my account"}
                 </AlertDialogAction>
               </AlertDialogFooter>

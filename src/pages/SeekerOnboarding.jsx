@@ -7,24 +7,25 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ChevronRight, ChevronLeft, Upload, X, Loader2 } from "lucide-react";
+import { getRegionsForCountry, isQuebec } from "@/lib/geoHelpers";
+import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
+import { normalizeProvince } from "@/lib/addressValidation";
 
-const PROVINCES = ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"];
 const WORK_STATUS = ["employed", "student", "freelancer", "unemployed", "other"];
 
 export default function SeekerOnboarding() {
   const { user, navigateToLogin, logout } = useAuth();
   const navigate = useNavigate();
+
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     headline: "",
     about_me: "",
-    preferred_country: "Canada",
+    preferred_country: "",
     preferred_province_or_state: "",
     preferred_cities: [],
     min_budget: "",
@@ -41,24 +42,46 @@ export default function SeekerOnboarding() {
     noise_tolerance: "moderate",
     photos: [],
   });
+
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+
+  const regions = formData.preferred_country
+    ? getRegionsForCountry(formData.preferred_country)
+    : [];
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const updated = { ...formData, [field]: value };
+    // Reset downstream fields when country changes
+    if (field === "preferred_country") {
+      updated.preferred_province_or_state = "";
+      updated.preferred_cities = [];
+    }
+    // Reset cities when province changes
+    if (field === "preferred_province_or_state") {
+      updated.preferred_cities = [];
+    }
+    setFormData(updated);
   };
 
-  const handleAddCity = (e) => {
-    if (e.key === "Enter" && e.target.value.trim()) {
-      const city = e.target.value.trim();
-      if (!formData.preferred_cities.includes(city)) {
-        setFormData(prev => ({
-          ...prev,
-          preferred_cities: [...prev.preferred_cities, city]
-        }));
-      }
-      e.target.value = "";
+  const handleAddCity = (city) => {
+    const trimmed = (typeof city === 'string' ? city : '').trim();
+    if (!trimmed) return;
+    if (!formData.preferred_cities.includes(trimmed)) {
+      setFormData(prev => ({
+        ...prev,
+        preferred_cities: [...prev.preferred_cities, trimmed],
+      }));
+    }
+    setCityInput("");
+  };
+
+  const handleCityKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddCity(e.target.value);
     }
   };
 
@@ -69,6 +92,7 @@ export default function SeekerOnboarding() {
       toast.error("Maximum 4 photos allowed.");
       return;
     }
+
     setUploadingPhoto(true);
     const compressedFile = await compressImage(file);
     const { file_url } = await uploadFile(compressedFile, 'profile-photos');
@@ -79,31 +103,77 @@ export default function SeekerOnboarding() {
   };
 
   const removePhoto = (index) => {
-    setFormData(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
+    setFormData(prev => ({
+      ...prev,
+      photos: prev.photos.filter((_, i) => i !== index),
+    }));
   };
 
   const validateStep = () => {
     if (step === 1) {
-      if (!formData.headline.trim()) { toast.error("Headline is required."); return false; }
-      if (!formData.about_me.trim()) { toast.error("About You is required."); return false; }
-      if (formData.photos.length === 0) { toast.error("At least one profile photo is required."); return false; }
+      if (!formData.headline.trim()) {
+        toast.error("Headline is required.");
+        return false;
+      }
+      if (!formData.about_me.trim()) {
+        toast.error("About You is required.");
+        return false;
+      }
+      if (formData.photos.length === 0) {
+        toast.error("At least one profile photo is required.");
+        return false;
+      }
     }
+
     if (step === 2) {
-      if (!formData.preferred_province_or_state) { toast.error("Please select a province."); return false; }
-      if (formData.preferred_cities.length === 0) { toast.error("Please add at least one preferred city."); return false; }
-      if (!formData.min_budget) { toast.error("Min budget is required."); return false; }
-      if (!formData.max_budget) { toast.error("Max budget is required."); return false; }
-      if (!formData.move_in_date) { toast.error("Move-in date is required."); return false; }
+      if (!formData.preferred_country) {
+        toast.error("Please select a country.");
+        return false;
+      }
+      if (!formData.preferred_province_or_state) {
+        toast.error("Please select a province / state.");
+        return false;
+      }
+      if (isQuebec(formData.preferred_province_or_state)) {
+        toast.error("This platform is not yet available in Quebec.");
+        return false;
+      }
+      if (formData.preferred_cities.length === 0) {
+        toast.error("Please add at least one preferred city.");
+        return false;
+      }
+      if (!formData.min_budget) {
+        toast.error("Min budget is required.");
+        return false;
+      }
+      if (!formData.max_budget) {
+        toast.error("Max budget is required.");
+        return false;
+      }
+      if (Number(formData.min_budget) > Number(formData.max_budget)) {
+        toast.error("Min budget cannot be greater than max budget.");
+        return false;
+      }
+      if (!formData.move_in_date) {
+        toast.error("Move-in date is required.");
+        return false;
+      }
     }
+
     if (step === 3) {
-      if (!formData.work_status) { toast.error("Work status is required."); return false; }
+      if (!formData.work_status) {
+        toast.error("Work status is required.");
+        return false;
+      }
     }
+
     return true;
   };
 
   const handleNext = () => {
     setAttempted(true);
     if (!validateStep()) return;
+    setAttempted(false);
     setStep(step + 1);
   };
 
@@ -112,18 +182,13 @@ export default function SeekerOnboarding() {
 
     setSaving(true);
     try {
-      const existing = await entities.SeekerProfile.filter({
-        owner_user_id: user.id
-      });
-
+      const existing = await entities.SeekerProfile.filter({ owner_user_id: user.id });
       const payload = {
         ...formData,
         avatar_url: formData.photos[0] || undefined,
       };
 
-      // Generate slug from headline + id
       const slug = generateSeekerSlug(formData.headline, existing[0]?.id || 'new');
-
       if (existing.length > 0) {
         await entities.SeekerProfile.update(existing[0].id, payload);
       } else {
@@ -134,7 +199,6 @@ export default function SeekerOnboarding() {
           ...payload,
         });
       }
-
       toast.success("Profile saved!");
       navigate("/search");
     } catch (err) {
@@ -151,6 +215,8 @@ export default function SeekerOnboarding() {
     { title: "Living Habits" },
   ];
 
+  const currencyLabel = formData.preferred_country === "USA" ? "USD" : "CAD";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-8">
       <div className="max-w-2xl mx-auto px-4">
@@ -161,12 +227,18 @@ export default function SeekerOnboarding() {
               <React.Fragment key={i}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
-                    i < step ? "bg-accent text-white" : i === step - 1 ? "bg-accent text-white" : "bg-muted text-muted-foreground"
+                    i < step
+                      ? "bg-accent text-white"
+                      : i === step - 1
+                      ? "bg-accent text-white"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {i + 1}
                 </div>
-                {i < steps.length - 1 && <div className={`flex-1 h-1 ${i < step - 1 ? "bg-accent" : "bg-muted"}`} />}
+                {i < steps.length - 1 && (
+                  <div className={`flex-1 h-1 ${i < step - 1 ? "bg-accent" : "bg-muted"}`} />
+                )}
               </React.Fragment>
             ))}
           </div>
@@ -188,6 +260,7 @@ export default function SeekerOnboarding() {
                   onChange={(e) => handleChange("headline", e.target.value)}
                 />
               </div>
+
               <div>
                 <Label htmlFor="about_me">About You *</Label>
                 <Textarea
@@ -199,9 +272,12 @@ export default function SeekerOnboarding() {
                 />
               </div>
 
-              {/* Profile Photos (required) */}
+              {/* Profile Photos */}
               <div>
-                <Label>Profile Photos <span className="text-destructive">*</span> <span className="text-muted-foreground font-normal">(at least 1, up to 4)</span></Label>
+                <Label>
+                  Profile Photos <span className="text-destructive">*</span>{" "}
+                  <span className="text-muted-foreground font-normal">(at least 1, up to 4)</span>
+                </Label>
                 <div className="mt-2 grid grid-cols-4 gap-3">
                   {formData.photos.map((url, i) => (
                     <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
@@ -235,30 +311,100 @@ export default function SeekerOnboarding() {
           {step === 2 && (
             <>
               <div>
-                <Label htmlFor="province">Province *</Label>
-                <Select value={formData.preferred_province_or_state} onValueChange={(v) => handleChange("preferred_province_or_state", v)}>
-                  <SelectTrigger id="province" className="mt-2">
-                    <SelectValue placeholder="Select province..." />
+                <Label>Country <span className="text-destructive">*</span></Label>
+                <Select
+                  value={formData.preferred_country}
+                  onValueChange={(v) => handleChange("preferred_country", v)}
+                >
+                  <SelectTrigger className={`mt-2 ${attempted && !formData.preferred_country ? "border-destructive" : ""}`}>
+                    <SelectValue placeholder="Select country..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    <SelectItem value="Canada">🇨🇦 Canada</SelectItem>
+                    <SelectItem value="USA">🇺🇸 USA</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="cities">Preferred Cities *</Label>
-                <Input
-                  id="cities"
-                  placeholder="Type city and press Enter..."
-                  onKeyDown={handleAddCity}
-                  className="mt-2"
-                />
+                <Label>Province / State <span className="text-destructive">*</span></Label>
+                <Select
+                  value={formData.preferred_province_or_state}
+                  onValueChange={(v) => handleChange("preferred_province_or_state", v)}
+                  disabled={!formData.preferred_country}
+                >
+                  <SelectTrigger
+                    id="province"
+                    className={`mt-2 ${attempted && !formData.preferred_province_or_state ? "border-destructive" : ""}`}
+                  >
+                    <SelectValue placeholder={formData.preferred_country ? "Select province / state..." : "Select country first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isQuebec(formData.preferred_province_or_state) && (
+                  <p className="text-destructive text-sm mt-1">This platform is not yet available in Quebec.</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="cities">Preferred Cities <span className="text-destructive">*</span></Label>
+                {formData.preferred_province_or_state ? (
+                  <>
+                    <AddressAutocomplete
+                      id="cities"
+                      value={cityInput}
+                      placeholder={`Search cities in ${formData.preferred_province_or_state}...`}
+                      disabled={!formData.preferred_province_or_state}
+                      countryFilter={formData.preferred_country === 'Canada' ? 'ca' : formData.preferred_country === 'USA' ? 'us' : undefined}
+                      onChange={(parsed) => {
+                        const parsedProvince = normalizeProvince(parsed.province_or_state);
+                        if (parsedProvince && parsedProvince !== formData.preferred_province_or_state) {
+                          toast.error(`"${parsed.city}" is in ${parsedProvince}, not ${formData.preferred_province_or_state}. Please select a city in ${formData.preferred_province_or_state}.`);
+                          return;
+                        }
+                        if (parsed.city) {
+                          handleAddCity(parsed.city);
+                        }
+                      }}
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Search and select cities, or type a city name and press Enter
+                    </p>
+                    <Input
+                      placeholder="Or type city name and press Enter..."
+                      value={cityInput}
+                      onChange={(e) => setCityInput(e.target.value)}
+                      onKeyDown={handleCityKeyDown}
+                      className="mt-2"
+                    />
+                  </>
+                ) : (
+                  <Input
+                    placeholder="Select country and province first"
+                    disabled
+                    className="mt-2"
+                  />
+                )}
                 <div className="flex flex-wrap gap-2 mt-3">
-                  {formData.preferred_cities.map(city => (
+                  {formData.preferred_cities.map((city) => (
                     <div key={city} className="bg-accent text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
                       {city}
-                      <button onClick={() => setFormData(p => ({ ...p, preferred_cities: p.preferred_cities.filter(c => c !== city) }))} className="text-white/70 hover:text-white">×</button>
+                      <button
+                        onClick={() =>
+                          setFormData((p) => ({
+                            ...p,
+                            preferred_cities: p.preferred_cities.filter((c) => c !== city),
+                          }))
+                        }
+                        className="text-white/70 hover:text-white"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -266,7 +412,7 @@ export default function SeekerOnboarding() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="min">Min Budget ($) *</Label>
+                  <Label htmlFor="min">Min Budget ({currencyLabel}) *</Label>
                   <Input
                     id="min"
                     type="number"
@@ -277,7 +423,7 @@ export default function SeekerOnboarding() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="max">Max Budget ($) *</Label>
+                  <Label htmlFor="max">Max Budget ({currencyLabel}) *</Label>
                   <Input
                     id="max"
                     type="number"
@@ -311,7 +457,9 @@ export default function SeekerOnboarding() {
                     <SelectValue placeholder="Select..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {WORK_STATUS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {WORK_STATUS.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
