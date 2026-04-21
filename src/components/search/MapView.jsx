@@ -298,7 +298,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
     const resolve = async () => {
       const results = await Promise.all(
         listings.map(async (listing) => {
-          if (listing.latitude && listing.longitude && isFinite(Number(listing.latitude)) && isFinite(Number(listing.longitude))) {
+          if (listing.latitude != null && listing.longitude != null && listing.latitude !== '' && listing.longitude !== '' && isFinite(Number(listing.latitude)) && isFinite(Number(listing.longitude)) && Number(listing.latitude) !== 0 && Number(listing.longitude) !== 0) {
             return { ...listing, _lat: Number(listing.latitude), _lng: Number(listing.longitude) };
           }
           if (listing.city && listing.province_or_state) {
