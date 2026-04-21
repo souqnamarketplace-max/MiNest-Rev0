@@ -27,6 +27,7 @@ import MobileListingCTA from "@/components/listings/MobileListingCTA";
 import SignInRequiredModal from "@/components/modals/SignInRequiredModal";
 import ViewingRequestModal from "@/components/modals/ViewingRequestModal";
 import ViewerAppointmentStatus from "@/components/viewing/ViewerAppointmentStatus";
+import BookingRequestModal from "@/components/bookings/BookingRequestModal";
 import PhotoLightbox from "@/components/listings/PhotoLightbox";
 import RentPaymentCTA from "@/components/payments/RentPaymentCTA";
 import RentalOfferModal from "@/components/payments/RentalOfferModal";
@@ -61,6 +62,7 @@ export default function ListingDetail() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const [viewingModalOpen, setViewingModalOpen] = useState(false);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [viewerAppointment, setViewerAppointment] = useState(null);
   const [refreshAppointment, setRefreshAppointment] = useState(0);
   const [rentalOfferOpen, setRentalOfferOpen] = useState(false);
@@ -359,6 +361,14 @@ export default function ListingDetail() {
     setRentalOfferOpen(true);
   };
 
+  const handleBookingClick = () => {
+    if (!user) {
+      setSignInModalOpen(true);
+      return;
+    }
+    setBookingModalOpen(true);
+  };
+
   const listingSchema = listing ? buildListingSchema(listing, hostProfile) : null;
   const breadcrumbSchema = listing ? buildBreadcrumbSchema([
     { name: "Home", path: "/" },
@@ -610,6 +620,37 @@ export default function ListingDetail() {
               />
             )}
 
+            {/* Book This Place CTA — daily rental listings only */}
+            {!isOwner && listing.rent_period === "daily" && (
+              <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 rounded-2xl border border-green-500/30 p-5 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Calendar className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-foreground">Book this place</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Select your dates and request a booking from the host.
+                    </p>
+                  </div>
+                </div>
+                {listing.checkin_time && listing.checkout_time && (
+                  <div className="text-xs bg-green-500/10 rounded-lg p-2 text-green-700 dark:text-green-400">
+                    Check-in after {listing.checkin_time} · Check-out before {listing.checkout_time}
+                  </div>
+                )}
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                  onClick={handleBookingClick}
+                >
+                  <Calendar className="w-4 h-4 mr-2" /> Request Booking
+                </Button>
+                {listing.cancellation_policy && (
+                  <p className="text-xs text-muted-foreground text-center capitalize">
+                    {listing.cancellation_policy} cancellation policy
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Schedule Viewing CTA or Edit Existing */}
             {listing.viewing_enabled && !isOwner && (
               <div className="bg-gradient-to-br from-accent/10 to-accent/5 rounded-2xl border border-accent/30 p-5 space-y-3">
@@ -733,6 +774,7 @@ export default function ListingDetail() {
         listing={listing}
         user={user}
         onMessage={() => handleContact(true)}
+        onBook={listing.rent_period === "daily" ? handleBookingClick : undefined}
         onFavorite={handleFavorite}
         isFavorited={isFavorited}
         isOwner={isOwner}
@@ -755,6 +797,16 @@ export default function ListingDetail() {
         existingAppointment={viewerAppointment}
         onSuccess={() => setRefreshAppointment(r => r + 1)}
       />
+
+      {/* Booking Request Modal (daily rentals) */}
+      {!isOwner && listing && listing.rent_period === "daily" && (
+        <BookingRequestModal
+          open={bookingModalOpen}
+          onOpenChange={setBookingModalOpen}
+          listing={listing}
+          onSuccess={() => toast.success("Booking request sent!")}
+        />
+      )}
 
       {/* Photo Lightbox */}
       <PhotoLightbox 

@@ -16,6 +16,7 @@ import BoostModal from "@/components/listings/BoostModal";
 import BoostStatusBadge from "@/components/listings/BoostStatusBadge";
 import ViewingRequestsList from "@/components/owner/ViewingRequestsList";
 import BookingRequestsList from "@/components/bookings/BookingRequestsList";
+import AvailabilityCalendar from "@/components/bookings/AvailabilityCalendar";
 import RentalRequestsList from "@/components/owner/RentalRequestsList";
 import MyViewingsList from "@/components/viewer/MyViewingsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -358,6 +359,33 @@ export default function Dashboard() {
             {!isSeeker && (
               <TabsContent value="bookings" className="mt-6">
                 <BookingRequestsList />
+
+                {/* Availability Calendars for daily listings */}
+                {listings.filter(l => l.rent_period === "daily" && l.status === "active").length > 0 && (
+                  <div className="mt-8 space-y-4">
+                    <h2 className="text-lg font-semibold text-foreground">Manage Availability</h2>
+                    <p className="text-sm text-muted-foreground">Block or unblock dates for your daily rental listings. Booked dates cannot be changed.</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {listings
+                        .filter(l => l.rent_period === "daily" && l.status === "active")
+                        .map(listing => (
+                          <div key={listing.id} className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              {listing.cover_photo_url && (
+                                <img src={listing.cover_photo_url} alt="" className="w-8 h-8 rounded-md object-cover" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground truncate">{listing.title}</p>
+                                <p className="text-xs text-muted-foreground">{listing.city}</p>
+                              </div>
+                            </div>
+                            <AvailabilityCalendar listing={listing} onUpdate={() => refetch()} />
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             )}
 

@@ -33,6 +33,15 @@ export default function SearchRooms() {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState(typeof window !== "undefined" && window.innerWidth < 1024 ? "grid" : "split"); // grid, map, split
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
+
+  // Lock body scroll when mobile map overlay is open
+  useEffect(() => {
+    if (mobileMapOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [mobileMapOpen]);
+
   const [showAlertNudge, setShowAlertNudge] = useState(false);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [rentPeriodTab, setRentPeriodTab] = useState("all");
@@ -525,11 +534,13 @@ export default function SearchRooms() {
 
       {resultsContent}
 
-      {/* Mobile floating map button */}
-      <button onClick={() => setMobileMapOpen(true)}
-        className="lg:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-5 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-semibold hover:scale-105 active:scale-95 transition-transform">
-        <Map className="w-4 h-4" /> Map
-      </button>
+      {/* Mobile floating map button — only when map overlay is closed */}
+      {!mobileMapOpen && (
+        <button onClick={() => setMobileMapOpen(true)}
+          className="lg:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-5 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-semibold hover:scale-105 active:scale-95 transition-transform">
+          <Map className="w-4 h-4" /> Map
+        </button>
+      )}
 
       {/* Mobile full-screen map overlay */}
       {mobileMapOpen && (
