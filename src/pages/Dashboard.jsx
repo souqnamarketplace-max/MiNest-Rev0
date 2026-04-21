@@ -15,6 +15,7 @@ import {
 import BoostModal from "@/components/listings/BoostModal";
 import BoostStatusBadge from "@/components/listings/BoostStatusBadge";
 import ViewingRequestsList from "@/components/owner/ViewingRequestsList";
+import BookingRequestsList from "@/components/bookings/BookingRequestsList";
 import RentalRequestsList from "@/components/owner/RentalRequestsList";
 import MyViewingsList from "@/components/viewer/MyViewingsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
