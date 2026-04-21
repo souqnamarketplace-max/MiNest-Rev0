@@ -95,11 +95,16 @@ export default function SearchRooms() {
   const { data: allListings = [], isLoading, error, refetch } = useQuery({
     queryKey: ["listings", filterQuery, filters.sort],
     queryFn: async () => {
-      // Fetch with higher limit to account for parking filter removing some results
-      const results = await entities.Listing.filter(filterQuery, filters.sort, 100);
-      return results;
+      try {
+        const results = await entities.Listing.filter(filterQuery, filters.sort, 100);
+        return results;
+      } catch (err) {
+        console.error("Listing fetch error:", err);
+        return []; // Return empty on error instead of hanging
+      }
     },
     staleTime: 30000,
+    retry: 0, // Don't retry — show results (or empty) immediately
   });
 
   // Log errors for debugging
@@ -285,9 +290,9 @@ export default function SearchRooms() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium text-foreground">
-              {isLoading ? "Loading listings..." : `${listings.length} listing${listings.length !== 1 ? "s" : ""} found`}
+              {isLoading && !error ? "Loading listings..." : error ? "0 listings found" : `${listings.length} listing${listings.length !== 1 ? "s" : ""} found`}
             </p>
-            {!isLoading && totalPages > 1 && (
+            {!isLoading && !error && totalPages > 1 && (
               <p className="text-xs text-muted-foreground">
                 Page {currentPage} of {totalPages}
               </p>
@@ -357,7 +362,7 @@ export default function SearchRooms() {
       {/* Results grid or map */}
       {viewMode === "map" ? (
         <div className="h-96 w-full rounded-2xl overflow-hidden border border-border">
-          {isLoading ? (
+          {isLoading && !error ? (
             <Skeleton className="w-full h-full" />
           ) : listings.length === 0 ? (
             <div className="flex items-center justify-center h-full bg-muted">
@@ -369,7 +374,7 @@ export default function SearchRooms() {
         </div>
       ) : (
         <>
-          {isLoading ? (
+          {isLoading && !error ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 w-full">
               {Array(6).fill(0).map((_, i) => (
                 <div key={i} className="rounded-2xl border border-border overflow-hidden">
