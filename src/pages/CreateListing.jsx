@@ -218,7 +218,6 @@ export default function CreateListing() {
     const data = {
       ...form,
       available_from: form.available_from || null,
-      move_in_date: form.move_in_date || null,
       owner_user_id: user.id,
       slug: generateSlug(form.title + "-" + form.city),
       rent_amount,
@@ -590,11 +589,14 @@ export default function CreateListing() {
                   parking_notes: form.parking_notes,
                 }}
                 onUpdate={(updated) => {
-                  update("parking_status", updated.parking_status);
-                  update("parking_type", updated.parking_type);
-                  update("parking_price", updated.parking_price);
-                  update("parking_price_period", updated.parking_price_period);
-                  update("parking_notes", updated.parking_notes);
+                  setForm(prev => ({
+                    ...prev,
+                    parking_status: updated.parking_status,
+                    parking_type: updated.parking_type,
+                    parking_price: updated.parking_price,
+                    parking_price_period: updated.parking_price_period,
+                    parking_notes: updated.parking_notes,
+                  }));
                 }}
               />
             </div>
