@@ -361,6 +361,9 @@ export default function MapView({ listings, filters, onListingHover, activeListi
       `}</style>
 
       <MapContainer
+        maxBounds={[[24.396308, -169.0], [83.5, -52.0]]}
+        maxBoundsViscosity={0.8}
+        minZoom={3}
         center={center && isFinite(center[0]) && isFinite(center[1]) ? center : [53.5, -113.5]}
         zoom={filters?.city ? 13 : filters?.province_or_state ? 7 : 5}
         touchZoom={true}
