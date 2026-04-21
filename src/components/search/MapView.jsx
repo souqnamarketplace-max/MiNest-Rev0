@@ -204,6 +204,7 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
     } else {
       map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
     }
+  } catch(e) { console.warn('Map error:', e); }
   }, [filters?.city, filters?.province_or_state, filters?.country, resolvedListings.length]);
 
   return null;
@@ -303,7 +304,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
           }
           if (listing.city && listing.province_or_state) {
             const coords = await geocodeCity(listing.city, listing.province_or_state);
-            if (coords) return { ...listing, _lat: coords.lat, _lng: coords.lng };
+            if (coords && isFinite(coords.lat) && isFinite(coords.lng)) return { ...listing, _lat: coords.lat, _lng: coords.lng };
           }
           return null;
         })
