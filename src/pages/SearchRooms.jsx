@@ -31,7 +31,7 @@ export default function SearchRooms() {
 
   const { user, navigateToLogin } = useAuth();
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState("split"); // grid, map, split
+  const [viewMode, setViewMode] = useState(typeof window !== "undefined" && window.innerWidth < 1024 ? "grid" : "split"); // grid, map, split
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
   const [showAlertNudge, setShowAlertNudge] = useState(false);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
@@ -494,7 +494,7 @@ export default function SearchRooms() {
           <div className="w-1/2 overflow-y-auto pr-2 space-y-3 scrollbar-thin">
             {listingGrid}
           </div>
-          {/* Right: sticky map */}
+          {/* Right: sticky map - only mount on desktop */}
           <div className="w-1/2 sticky top-0 rounded-2xl overflow-hidden">
             {listings.length > 0 && {listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
               onListingHover={setHoveredListingId} />}}
