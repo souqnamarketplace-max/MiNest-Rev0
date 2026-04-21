@@ -484,8 +484,8 @@ export default function SearchRooms() {
       {viewMode === "map" ? (
         <div className="h-[calc(100vh-280px)] min-h-[500px] w-full rounded-2xl overflow-hidden">
           {isLoading ? <Skeleton className="w-full h-full" /> : (
-            {listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
-              onListingHover={setHoveredListingId} />}
+            listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
+              onListingHover={setHoveredListingId} />
           )}
         </div>
       ) : viewMode === "split" ? (
