@@ -184,8 +184,27 @@ export default function SeekerOnboarding() {
     try {
       const existing = await entities.SeekerProfile.filter({ owner_user_id: user.id });
       const payload = {
-        ...formData,
-        avatar_url: formData.photos[0] || undefined,
+        headline: formData.headline,
+        bio: formData.about_me,
+        profile_photo_url: formData.photos[0] || null,
+        preferred_country: formData.preferred_country,
+        preferred_province_or_state: formData.preferred_province_or_state,
+        preferred_cities: formData.preferred_cities,
+        min_budget: Number(formData.min_budget) || null,
+        max_budget: Number(formData.max_budget) || null,
+        currency_code: formData.preferred_country === "USA" ? "USD" : "CAD",
+        move_in_date: formData.move_in_date || null,
+        work_status: formData.work_status || null,
+        smoking: formData.smoking || null,
+        pets: formData.pets || null,
+        cleanliness_level: formData.cleanliness_level || null,
+        sleep_schedule: formData.sleep_schedule || null,
+        social_level: formData.social_level || null,
+        guest_frequency: formData.guest_frequency || null,
+        noise_tolerance: formData.noise_tolerance || null,
+        room_type_preference: [],
+        status: "active",
+        is_visible: true,
       };
 
       const slug = generateSeekerSlug(formData.headline, existing[0]?.id || 'new');
