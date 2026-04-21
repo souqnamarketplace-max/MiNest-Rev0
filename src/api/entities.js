@@ -110,8 +110,7 @@ export const entities = {
   ContactMessage:         makeEntity('contact_messages'),
   SavedSearch:            makeEntity('saved_searches'),
   Report:                 makeEntity('reports'),
-  De
-deviceToken:            makeEntity('device_tokens'),
+  DeviceToken:            makeEntity('device_tokens'),
   Booking:                makeEntity('bookings'),
 };
 
