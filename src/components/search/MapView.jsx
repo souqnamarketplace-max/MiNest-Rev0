@@ -361,7 +361,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
       `}</style>
 
       <MapContainer
-        center={center}
+        center={center && isFinite(center[0]) && isFinite(center[1]) ? center : [53.5, -113.5]}
         zoom={filters?.city ? 13 : filters?.province_or_state ? 7 : 5}
         touchZoom={true}
         scrollWheelZoom={true}
@@ -378,7 +378,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
         />
 
         {/* Individual markers with price labels */}
-        {markers.map(listing => (
+        {markers.filter(l => l._lat && l._lng && isFinite(l._lat) && isFinite(l._lng)).map(listing => (
           <Marker
             key={listing.id}
             position={[listing._lat, listing._lng]}
@@ -413,7 +413,7 @@ export default function MapView({ listings, filters, onListingHover, activeListi
         ))}
 
         {/* Cluster markers */}
-        {clusters.map((cluster, i) => (
+        {clusters.filter(c => c.lat && c.lng && isFinite(c.lat) && isFinite(c.lng)).map((cluster, i) => (
           <Marker
             key={`cluster-${i}`}
             position={[cluster.lat, cluster.lng]}
