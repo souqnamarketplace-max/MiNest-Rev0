@@ -1,4 +1,5 @@
 // MiNest Global Configuration
+
 export const APP_CONFIG = {
   name: "MiNest",
   domain: "MiNest.ca",
@@ -78,6 +79,107 @@ export const GENDER_OPTIONS = [
   { value: "female", label: "Female" },
   { value: "non_binary", label: "Non-Binary" },
 ];
+
+// ============================================
+// NEW: Property detail options
+// ============================================
+
+export const FLOOR_LEVEL_OPTIONS = [
+  { value: "basement", label: "Basement" },
+  { value: "ground", label: "Ground Floor" },
+  { value: "upper", label: "Upper Floor" },
+];
+
+export const LAUNDRY_OPTIONS = [
+  { value: "in_unit", label: "In-Unit" },
+  { value: "in_building", label: "In-Building" },
+  { value: "none", label: "No Laundry" },
+];
+
+export const KITCHEN_ACCESS_OPTIONS = [
+  { value: "private", label: "Private Kitchen" },
+  { value: "shared", label: "Shared Kitchen" },
+  { value: "limited", label: "Limited Access" },
+];
+
+export const AC_HEATING_OPTIONS = [
+  { value: "central", label: "Central AC/Heat" },
+  { value: "window_unit", label: "Window Unit" },
+  { value: "radiator", label: "Radiator" },
+  { value: "baseboard", label: "Baseboard" },
+  { value: "none", label: "None" },
+];
+
+export const BEDS_IN_ROOM_OPTIONS = [
+  { value: 1, label: "1 Bed" },
+  { value: 2, label: "2 Beds" },
+  { value: 3, label: "3 Beds" },
+  { value: 4, label: "4 Beds" },
+];
+
+export const TOTAL_BEDROOMS_OPTIONS = [
+  { value: 1, label: "1" },
+  { value: 2, label: "2" },
+  { value: 3, label: "3" },
+  { value: 4, label: "4" },
+  { value: 5, label: "5" },
+  { value: 6, label: "6+" },
+];
+
+export const CURRENT_ROOMMATES_OPTIONS = [
+  { value: 0, label: "0 (Empty)" },
+  { value: 1, label: "1" },
+  { value: 2, label: "2" },
+  { value: 3, label: "3" },
+  { value: 4, label: "4" },
+  { value: 5, label: "5+" },
+];
+
+// ============================================
+// NEW: Daily rental / booking options
+// ============================================
+
+export const BOOKING_MODE_OPTIONS = [
+  { value: "inquiry", label: "Inquiry Only", description: "Guests message you first, you arrange everything manually" },
+  { value: "booking_required", label: "Booking Required", description: "Guests select dates and submit a booking request for your approval" },
+];
+
+export const CANCELLATION_POLICY_OPTIONS = [
+  { value: "flexible", label: "Flexible", description: "Full refund if cancelled 24 hours before check-in" },
+  { value: "moderate", label: "Moderate", description: "Full refund if cancelled 5 days before check-in" },
+  { value: "strict", label: "Strict", description: "50% refund if cancelled 7 days before check-in" },
+];
+
+export const CHECKIN_TIME_OPTIONS = [
+  { value: "12:00", label: "12:00 PM" },
+  { value: "13:00", label: "1:00 PM" },
+  { value: "14:00", label: "2:00 PM" },
+  { value: "15:00", label: "3:00 PM" },
+  { value: "16:00", label: "4:00 PM" },
+  { value: "17:00", label: "5:00 PM" },
+  { value: "18:00", label: "6:00 PM" },
+];
+
+export const CHECKOUT_TIME_OPTIONS = [
+  { value: "08:00", label: "8:00 AM" },
+  { value: "09:00", label: "9:00 AM" },
+  { value: "10:00", label: "10:00 AM" },
+  { value: "11:00", label: "11:00 AM" },
+  { value: "12:00", label: "12:00 PM" },
+];
+
+export const BOOKING_STATUS_OPTIONS = [
+  { value: "pending", label: "Pending", color: "yellow" },
+  { value: "confirmed", label: "Confirmed", color: "green" },
+  { value: "declined", label: "Declined", color: "red" },
+  { value: "cancelled", label: "Cancelled", color: "gray" },
+  { value: "completed", label: "Completed", color: "blue" },
+  { value: "no_show", label: "No Show", color: "red" },
+];
+
+// ============================================
+// Existing constants (unchanged)
+// ============================================
 
 export const USER_ROLES = ["guest", "seeker", "lister", "both", "admin"];
 export const LISTING_STATUSES = ["draft", "pending_review", "active", "paused", "expired", "rejected", "removed"];

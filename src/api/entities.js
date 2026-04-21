@@ -110,7 +110,9 @@ export const entities = {
   ContactMessage:         makeEntity('contact_messages'),
   SavedSearch:            makeEntity('saved_searches'),
   Report:                 makeEntity('reports'),
-  DeviceToken:            makeEntity('device_tokens'),
+  De
+deviceToken:            makeEntity('device_tokens'),
+  Booking:                makeEntity('bookings'),
 };
 
 // Upload file to Supabase Storage

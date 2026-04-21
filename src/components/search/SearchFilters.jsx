@@ -4,64 +4,62 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { RotateCcw } from "lucide-react";
-import { LISTING_TYPES, PROPERTY_TYPES, FURNISHING_OPTIONS } from "@/lib/config";
+import { RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  LISTING_TYPES, PROPERTY_TYPES, FURNISHING_OPTIONS,
+  FLOOR_LEVEL_OPTIONS, LAUNDRY_OPTIONS, AC_HEATING_OPTIONS,
+} from "@/lib/config";
 import { getRegionsForCountry } from "@/lib/geoHelpers";
-import { getNormalizedMonthlyPrice, getCurrencyByCountry } from "@/lib/pricingHelpers";
+import { getCurrencyByCountry } from "@/lib/pricingHelpers";
 import { useCountry } from "@/lib/CountryContext";
-import { matchesParkingFilter } from "@/lib/parkingHelpers";
 
 const defaultFilters = {
   country: "", province_or_state: "", city: "",
   listing_type: "", property_type: "", furnishing: "",
-  price_min: "", price_max: "",
-  bills_included: false, parking_available: false, internet_included: false,
-  pets_allowed: false, smoking_allowed: false, student_friendly: false,
+  price_min: "", price_max: "", rent_period: "",
+  bills_included: false, parking_available: false,
+  internet_included: false, pets_allowed: false,
+  smoking_allowed: false, student_friendly: false,
   lgbtq_friendly: false, couples_allowed: false,
+  laundry: "", floor_level: "", ac_heating: "",
+  parking_filter: "any",
   sort: "-created_at",
 };
 
 function SearchFiltersComponent({ filters, onFiltersChange }) {
   const { country } = useCountry();
   const [cityInput, setCityInput] = useState(filters.city || "");
+  const [showMore, setShowMore] = useState(false);
   const debounceTimer = useRef(null);
-  
-  // Memoize currentFilters to prevent focus loss
-  // Use global country as fallback if filter country not set
+
   const currentFilters = useMemo(() => ({
     ...defaultFilters,
     ...filters,
-    // If no country filter set, display the global country
     country: filters.country || country || "",
   }), [filters, country]);
-  const regions = useMemo(() => currentFilters.country ? getRegionsForCountry(currentFilters.country) : [], [currentFilters.country]);
 
-  // Sync cityInput with filter prop when filters change
-  useEffect(() => {
-    setCityInput(filters.city || "");
-  }, [filters.city]);
+  const regions = useMemo(() =>
+    currentFilters.country ? getRegionsForCountry(currentFilters.country) : [],
+    [currentFilters.country]
+  );
+
+  useEffect(() => { setCityInput(filters.city || ""); }, [filters.city]);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      updateFilter("city", cityInput);
-    }, 300);
+    debounceTimer.current = setTimeout(() => { updateFilter("city", cityInput); }, 300);
     return () => clearTimeout(debounceTimer.current);
   }, [cityInput]);
 
   const updateFilter = useCallback((key, value) => {
     const updated = { ...currentFilters, [key]: value };
-    if (key === "country") { updated.province_or_state = ""; }
+    if (key === "country") updated.province_or_state = "";
     onFiltersChange(updated);
   }, [currentFilters, onFiltersChange]);
 
   const resetFilters = useCallback(() => onFiltersChange(defaultFilters), [onFiltersChange]);
 
-  const activeCount = useMemo(() => Object.entries(currentFilters).filter(
-    ([k, v]) => v && v !== "" && v !== false && k !== "sort" && defaultFilters[k] !== v
-  ).length, [currentFilters]);
-
-  const filterContent = useMemo(() => (
+  return (
     <div className="space-y-5">
       {/* Location */}
       <div className="space-y-3">
@@ -76,18 +74,11 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
         {regions.length > 0 && (
           <Select value={currentFilters.province_or_state} onValueChange={(v) => updateFilter("province_or_state", v)}>
             <SelectTrigger><SelectValue placeholder="Province / State" /></SelectTrigger>
-            <SelectContent>
-              {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-            </SelectContent>
+            <SelectContent>{regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
           </Select>
         )}
-        <Input
-          placeholder="City"
-          value={cityInput}
-          onChange={(e) => setCityInput(e.target.value)}
-          autoComplete="off"
-          name="search_filter_city"
-        />
+        <Input placeholder="City" value={cityInput} onChange={(e) => setCityInput(e.target.value)}
+          autoComplete="off" name="search_filter_city" />
       </div>
 
       {/* Type */}
@@ -95,15 +86,11 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
         <h4 className="text-sm font-semibold text-foreground">Room Type</h4>
         <Select value={currentFilters.listing_type} onValueChange={(v) => updateFilter("listing_type", v)}>
           <SelectTrigger><SelectValue placeholder="Any type" /></SelectTrigger>
-          <SelectContent>
-            {LISTING_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-          </SelectContent>
+          <SelectContent>{LISTING_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={currentFilters.property_type} onValueChange={(v) => updateFilter("property_type", v)}>
           <SelectTrigger><SelectValue placeholder="Property type" /></SelectTrigger>
-          <SelectContent>
-            {PROPERTY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-          </SelectContent>
+          <SelectContent>{PROPERTY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
@@ -120,40 +107,20 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
         </Select>
       </div>
 
-      {/* Price - context aware based on rent period & country */}
+      {/* Budget */}
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-foreground">
-          Budget ({getCurrencyByCountry(currentFilters.country || country)}) {currentFilters.rent_period && `· ${currentFilters.rent_period}`}
+          Budget ({getCurrencyByCountry(currentFilters.country || country)})
+          {currentFilters.rent_period && ` · ${currentFilters.rent_period}`}
         </h4>
         <div className="flex gap-2">
-          <Input 
-            type="number" 
-            min="0"
-            placeholder={`Min ${getCurrencyByCountry(currentFilters.country || country)}${currentFilters.rent_period === "daily" ? "/day" : currentFilters.rent_period === "weekly" ? "/week" : ""}`} 
-            value={currentFilters.price_min} 
+          <Input type="number" min="0" placeholder="Min" value={currentFilters.price_min}
             onChange={(e) => updateFilter("price_min", e.target.value < 0 ? "" : e.target.value)}
-            autoComplete="off"
-            name="search_filter_price_min"
-          />
-          <Input 
-            type="number" 
-            min="0"
-            placeholder={`Max ${getCurrencyByCountry(currentFilters.country || country)}${currentFilters.rent_period === "daily" ? "/day" : currentFilters.rent_period === "weekly" ? "/week" : ""}`} 
-            value={currentFilters.price_max} 
+            autoComplete="off" name="search_filter_price_min" />
+          <Input type="number" min="0" placeholder="Max" value={currentFilters.price_max}
             onChange={(e) => updateFilter("price_max", e.target.value < 0 ? "" : e.target.value)}
-            autoComplete="off"
-            name="search_filter_price_max"
-          />
+            autoComplete="off" name="search_filter_price_max" />
         </div>
-        <p className="text-xs text-muted-foreground">
-          {!currentFilters.rent_period 
-            ? "Enter your budget" 
-            : currentFilters.rent_period === "monthly"
-            ? "Enter monthly budget"
-            : currentFilters.rent_period === "weekly"
-            ? "Enter weekly budget"
-            : "Enter daily budget"}
-        </p>
       </div>
 
       {/* Furnishing */}
@@ -161,13 +128,11 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
         <h4 className="text-sm font-semibold text-foreground">Furnishing</h4>
         <Select value={currentFilters.furnishing} onValueChange={(v) => updateFilter("furnishing", v)}>
           <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-          <SelectContent>
-            {FURNISHING_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-          </SelectContent>
+          <SelectContent>{FURNISHING_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 
-      {/* Parking Filter */}
+      {/* Parking */}
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-foreground">Parking</h4>
         <Select value={currentFilters.parking_filter || "any"} onValueChange={(v) => updateFilter("parking_filter", v)}>
@@ -181,6 +146,34 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
           </SelectContent>
         </Select>
       </div>
+
+      {/* More filters toggle */}
+      <button onClick={() => setShowMore(!showMore)}
+        className="flex items-center gap-1 text-sm text-accent hover:underline w-full justify-center py-1">
+        {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {showMore ? "Fewer filters" : "More filters"}
+      </button>
+
+      {showMore && (
+        <>
+          {/* Property Features */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Property Features</h4>
+            <Select value={currentFilters.laundry} onValueChange={(v) => updateFilter("laundry", v)}>
+              <SelectTrigger><SelectValue placeholder="Laundry" /></SelectTrigger>
+              <SelectContent>{LAUNDRY_OPTIONS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={currentFilters.floor_level} onValueChange={(v) => updateFilter("floor_level", v)}>
+              <SelectTrigger><SelectValue placeholder="Floor level" /></SelectTrigger>
+              <SelectContent>{FLOOR_LEVEL_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={currentFilters.ac_heating} onValueChange={(v) => updateFilter("ac_heating", v)}>
+              <SelectTrigger><SelectValue placeholder="AC / Heating" /></SelectTrigger>
+              <SelectContent>{AC_HEATING_OPTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
 
       {/* Toggles */}
       <div className="space-y-3">
@@ -219,19 +212,7 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
         <RotateCcw className="w-4 h-4 mr-2" /> Reset Filters
       </Button>
     </div>
-  ), [currentFilters, regions, updateFilter, resetFilters]);
-
-  return filterContent;
+  );
 }
 
 export default React.memo(SearchFiltersComponent);
-
-function Badge({ children, variant, className }) {
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-      variant === "secondary" ? "bg-muted text-muted-foreground" : "bg-accent/10 text-accent"
-    } ${className || ""}`}>
-      {children}
-    </span>
-  );
-}
