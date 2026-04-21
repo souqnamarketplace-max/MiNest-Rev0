@@ -349,7 +349,14 @@ export default function Dashboard() {
           </TabsContent>
         )}
 
-        {/* PAYMENTS TAB */}
+        {/* BOOKINGS TAB */}
+            {!isSeeker && (
+              <TabsContent value="bookings" className="mt-6">
+                <BookingRequestsList />
+              </TabsContent>
+            )}
+
+            {/* PAYMENTS TAB */}
         <TabsContent value="payments" className="mt-6">
           {dashboardLoading ? (
             <div className="space-y-4">
