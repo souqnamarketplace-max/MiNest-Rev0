@@ -484,8 +484,8 @@ export default function SearchRooms() {
       {viewMode === "map" ? (
         <div className="h-[calc(100vh-280px)] min-h-[500px] w-full rounded-2xl overflow-hidden">
           {isLoading ? <Skeleton className="w-full h-full" /> : (
-            <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
-              onListingHover={setHoveredListingId} />
+            {listings.length > 0 && {listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
+              onListingHover={setHoveredListingId} />}}
           )}
         </div>
       ) : viewMode === "split" ? (
@@ -496,8 +496,8 @@ export default function SearchRooms() {
           </div>
           {/* Right: sticky map */}
           <div className="w-1/2 sticky top-0 rounded-2xl overflow-hidden">
-            <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
-              onListingHover={setHoveredListingId} />
+            {listings.length > 0 && {listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
+              onListingHover={setHoveredListingId} />}}
           </div>
         </div>
       ) : null}
@@ -544,8 +544,8 @@ export default function SearchRooms() {
           </div>
           {/* Map */}
           <div className="w-full h-full pt-12">
-            <MapView listings={listings} filters={filters} isMobile={true}
-              onListingHover={setHoveredListingId} />
+            {listings.length > 0 && <MapView listings={listings} filters={filters} isMobile={true}
+              onListingHover={setHoveredListingId} />}
           </div>
         </div>
       )}
