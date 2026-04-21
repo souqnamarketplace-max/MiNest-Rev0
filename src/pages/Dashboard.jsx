@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Eye, MessageSquare, Settings, MoreHorizontal, Pause, Pencil, Trash2, Zap, Search, UserCircle, CreditCard, TrendingUp, DollarSign, AlertTriangle, FileText , Shield} from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/geoHelpers";
-import { getCurrencyByCountry } from "@/lib/pricingHelpers";
+import { getCurrencyByCountry, formatRentPrice } from "@/lib/pricingHelpers";
 import { useCountry } from "@/lib/CountryContext";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
@@ -662,7 +662,7 @@ export default function Dashboard() {
                       {listing.status?.replace(/_/g, " ")}
                     </Badge>
                     <BoostStatusBadge listing={listing} />
-                    <span className="text-sm font-semibold text-accent">${Math.round(listing.rent_amount || listing.monthly_rent || 0).toLocaleString()} {dashCurrency}/mo</span>
+                    <span className="text-sm font-semibold text-accent">{formatRentPrice(listing.rent_amount || listing.monthly_rent, listing.rent_period || "monthly", dashCurrency)}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
