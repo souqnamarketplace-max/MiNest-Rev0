@@ -47,7 +47,11 @@ export default function SearchRooms() {
   const [rentPeriodTab, setRentPeriodTab] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [hoveredListingId, setHoveredListingId] = useState(null);
-  const [locationDetected, setLocationDetected] = useState(false);
+  const [locationDetected, setLocationDetected] = useState(() => {
+    // If user cleared filters this session, don't auto-detect again
+    try { return sessionStorage.getItem('minest-filters-cleared') === '1'; }
+    catch { return false; }
+  });
   const PAGE_SIZE = 12;
 
   // ==========================================
@@ -341,8 +345,8 @@ export default function SearchRooms() {
       setCityInput("");
     }
     if (key === "province_or_state") localStorage.removeItem('minest-last-province');
-    // Keep locationDetected true so geo/seeker layers don't re-trigger
     setLocationDetected(true);
+    try { sessionStorage.setItem('minest-filters-cleared', '1'); } catch {}
   };
 
   const handleClearAllFilters = () => {
@@ -350,8 +354,8 @@ export default function SearchRooms() {
     setFilters({ city: "", country: "", province_or_state: "", sort: "-created_at" });
     localStorage.removeItem('minest-last-city');
     localStorage.removeItem('minest-last-province');
-    // Keep locationDetected true so auto-detection doesn't re-fill after clearing
     setLocationDetected(true);
+    try { sessionStorage.setItem('minest-filters-cleared', '1'); } catch {}
   };
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
