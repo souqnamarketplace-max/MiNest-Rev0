@@ -10,21 +10,23 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
 function buildSummary(s) {
+  // Filters may be stored as a JSONB column or as top-level fields (legacy)
+  const f = s.filters || s;
   const parts = [];
-  if (s.city) parts.push(s.city);
-  if (s.province_or_state) parts.push(s.province_or_state);
-  if (s.country) parts.push(s.country);
-  if (s.min_price && s.max_price) parts.push(`$${s.min_price}–$${s.max_price}`);
-  else if (s.max_price) parts.push(`up to $${s.max_price}`);
-  if (s.listing_type) {
+  if (f.city) parts.push(f.city);
+  if (f.province_or_state) parts.push(f.province_or_state);
+  if (f.country) parts.push(f.country);
+  if (f.min_price && f.max_price) parts.push(`$${f.min_price}–$${f.max_price}`);
+  else if (f.max_price) parts.push(`up to $${f.max_price}`);
+  if (f.listing_type) {
     const labels = { private_room: "Private Room", shared_room: "Shared Room", entire_place: "Entire Place" };
-    parts.push(labels[s.listing_type] || s.listing_type);
+    parts.push(labels[f.listing_type] || f.listing_type);
   }
-  if (s.furnishing) parts.push(s.furnishing);
+  if (f.furnishing) parts.push(f.furnishing);
   const flags = [];
-  if (s.parking) flags.push("Parking");
-  if (s.pets_allowed) flags.push("Pets");
-  if (s.student_friendly) flags.push("Student");
+  if (f.parking) flags.push("Parking");
+  if (f.pets_allowed) flags.push("Pets");
+  if (f.student_friendly) flags.push("Student");
   if (flags.length) parts.push(flags.join(", "));
   return parts.join(" · ") || "All listings";
 }

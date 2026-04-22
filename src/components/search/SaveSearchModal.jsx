@@ -79,10 +79,8 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
     }
     setSaving(true);
 
-    // Build clean filter payload from the search filters
-    const payload = {
-      user_id: user.id,
-      name: name.trim() || buildSearchName(filters),
+    // Build clean filter payload — pack search criteria into filters JSONB column
+    const filterData = {
       search_type: searchType,
       country: filters.country || null,
       province_or_state: filters.province_or_state || null,
@@ -95,8 +93,14 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
       pets_allowed: !!filters.pets_allowed,
       smoking_allowed: !!filters.smoking_allowed,
       student_friendly: !!filters.student_friendly,
-      alerts_enabled: alertsEnabled,
       alert_frequency: frequency,
+    };
+
+    const payload = {
+      user_id: user.id,
+      name: name.trim() || buildSearchName(filters),
+      filters: filterData,
+      alerts_enabled: alertsEnabled,
       is_active: true,
     };
 
