@@ -72,6 +72,11 @@ export default function Header() {
               user ? (
                 <>
                   <NotificationCenter />
+                  <Link to="/messages">
+                    <Button variant="ghost" size="icon" aria-label="Messages" className="h-9 w-9">
+                      <MessageSquare className="w-5 h-5" />
+                    </Button>
+                  </Link>
                   <Link to="/favorites">
                     <Button variant="ghost" size="icon" aria-label="Favorites" className="h-9 w-9">
                       <Heart className="w-5 h-5" />
