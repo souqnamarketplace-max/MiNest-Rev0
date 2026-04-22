@@ -140,12 +140,35 @@ export const entities = {
 
 // Upload file to Supabase Storage
 // FIX: Replaces base44.integrations.Core.UploadFile
+// Allowed file types for uploads
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export async function uploadFile(file, bucket = 'listing-photos') {
-  const ext = file.name.split('.').pop();
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+  }
+
+  // Validate file type based on bucket
+  const allowedTypes = bucket.includes('photo') || bucket.includes('listing') || bucket.includes('profile')
+    ? ALLOWED_IMAGE_TYPES
+    : [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOC_TYPES];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error(`File type "${file.type}" is not allowed. Accepted: ${allowedTypes.join(', ')}`);
+  }
+
+  // Sanitize filename — remove special characters
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ext = safeName.split('.').pop().toLowerCase();
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
   const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: '3600',
     upsert: false,
+    contentType: file.type,
   });
   if (error) throw error;
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);

@@ -34,27 +34,27 @@ document.addEventListener("touchstart", onInteraction, { passive: true });
 
 // Check user preference from localStorage
 function isSoundEnabled() {
-  return localStorage.getItem("roomzy_sound_enabled") !== "false";
+  return localStorage.getItem("minest_sound_enabled") !== "false";
 }
 
 function isMessageSoundEnabled() {
-  return localStorage.getItem("roomzy_message_sound_enabled") !== "false";
+  return localStorage.getItem("minest_message_sound_enabled") !== "false";
 }
 
 function isNotifSoundEnabled() {
-  return localStorage.getItem("roomzy_notif_sound_enabled") !== "false";
+  return localStorage.getItem("minest_notif_sound_enabled") !== "false";
 }
 
 export function setSoundEnabled(enabled) {
-  localStorage.setItem("roomzy_sound_enabled", String(enabled));
+  localStorage.setItem("minest_sound_enabled", String(enabled));
 }
 
 export function setMessageSoundEnabled(enabled) {
-  localStorage.setItem("roomzy_message_sound_enabled", String(enabled));
+  localStorage.setItem("minest_message_sound_enabled", String(enabled));
 }
 
 export function setNotifSoundEnabled(enabled) {
-  localStorage.setItem("roomzy_notif_sound_enabled", String(enabled));
+  localStorage.setItem("minest_notif_sound_enabled", String(enabled));
 }
 
 export function getSoundPreferences() {

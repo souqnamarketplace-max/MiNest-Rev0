@@ -1,25 +1,33 @@
 User-agent: *
 Allow: /
+Allow: /search
+Allow: /roommates
+Allow: /listing/*
+Allow: /rooms-for-rent/*
+Allow: /how-it-works
+Allow: /safety
+Allow: /pricing
+Allow: /contact
+Allow: /terms
+Allow: /privacy
 
-# Allow all major search engines
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-# Block private/authenticated pages only
 Disallow: /dashboard
-Disallow: /profile
 Disallow: /messages
+Disallow: /profile
 Disallow: /admin
-Disallow: /my-payments
-Disallow: /my-viewings
-Disallow: /favorites
-Disallow: /notifications
-Disallow: /seeker-onboarding
+Disallow: /admin/*
 Disallow: /create-listing
+Disallow: /favorites
+Disallow: /my-bookings
+Disallow: /my-viewings
+Disallow: /my-payments
+Disallow: /owner-payment-setup
+Disallow: /seeker-onboarding
+Disallow: /saved-searches
 Disallow: /notification-preferences
+Disallow: /notifications
+Disallow: /boost-manager
+Disallow: /verification-flow
+Disallow: /login
 
-# Sitemap
 Sitemap: https://minest.ca/sitemap.xml

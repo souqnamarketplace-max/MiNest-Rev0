@@ -64,7 +64,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Cannot Save Search</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Roomzy does not currently operate in Quebec. Please search in another province or province.
+            MiNest does not currently operate in Quebec. Please search in another province or province.
           </p>
           <Button onClick={() => onOpenChange(false)}>Close</Button>
         </DialogContent>

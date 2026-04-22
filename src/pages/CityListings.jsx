@@ -17,10 +17,10 @@ export default function CityListings() {
 
   // Set dynamic page title and meta tags
   React.useEffect(() => {
-    const title = city ? `Rooms in ${city}, ${province} | Roomzy` : "Find Rooms | Roomzy";
+    const title = city ? `Rooms in ${city}, ${province} | MiNest` : "Find Rooms | MiNest";
     const description = city
       ? `Browse available rooms for rent in ${city}, ${province}. Find your perfect room with verified listings and trusted hosts.`
-      : "Search rooms and find your ideal roommate on Roomzy.";
+      : "Search rooms and find your ideal roommate on MiNest.";
     
     document.title = title;
     document.querySelector('meta[name="description"]')?.setAttribute("content", description);
