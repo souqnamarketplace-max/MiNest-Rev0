@@ -109,17 +109,8 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
   };
 
   const handleTouchMove = (e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (lastPinchDist.current) {
-        const scale = dist / lastPinchDist.current;
-        setZoom(z => Math.min(Math.max(z * scale, 1), 5));
-      }
-      lastPinchDist.current = dist;
-    } else if (e.touches.length === 1 && zoom > 1 && isDragging) {
+    // Pinch zoom handled by non-passive useEffect listener above
+    if (e.touches.length === 1 && zoom > 1 && isDragging) {
       setPan({
         x: panStart.current.x + (e.touches[0].clientX - dragStart.current.x),
         y: panStart.current.y + (e.touches[0].clientY - dragStart.current.y),
@@ -140,12 +131,39 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
     touchStartX.current = null;
   };
 
-  // Scroll to zoom
-  const handleWheel = (e) => {
-    e.preventDefault();
-    if (e.deltaY < 0) zoomIn();
-    else zoomOut();
-  };
+  // Scroll to zoom — must use non-passive listener via useEffect
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !open) return;
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) zoomIn();
+      else zoomOut();
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [open, zoom]);
+
+  // Pinch-to-zoom — must use non-passive touchmove via useEffect
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !open) return;
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (lastPinchDist.current) {
+          const scale = dist / lastPinchDist.current;
+          setZoom(z => Math.min(Math.max(z * scale, 1), 5));
+        }
+        lastPinchDist.current = dist;
+      }
+    };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onTouchMove);
+  }, [open]);
 
   if (photos.length === 0) return null;
 
@@ -212,7 +230,6 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onWheel={handleWheel}
           style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in", touchAction: "none" }}
         >
           <AnimatePresence mode="wait">
