@@ -70,15 +70,6 @@ export default function ViewingRequestModal({ open, onOpenChange, listing, exist
 
     setLoading(true);
     try {
-      // Validate slot availability
-      // Slot validation skipped - proceeding directly
-
-      if (!validationRes.data?.available) {
-        toast.error(validationRes.data?.error || "Time slot is not available");
-        setLoading(false);
-        return;
-      }
-
       if (existingAppointment) {
         // Update existing appointment
         await entities.ViewingAppointment.update(existingAppointment.id, {
