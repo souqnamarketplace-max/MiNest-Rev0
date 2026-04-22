@@ -17,7 +17,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
+  const [mode, setMode] = useState('signin'); // 'signin' | 'signup' | 'recovery'
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   // Rate limiting: max 5 attempts per 60 seconds
   const [attempts, setAttempts] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(null);
@@ -46,9 +48,24 @@ export default function Login() {
     ? rawReturnTo
     : '/dashboard';
 
+  // Detect password recovery flow from Supabase redirect
   useEffect(() => {
-    if (!isLoadingAuth && isAuthenticated) navigate(returnTo, { replace: true });
-  }, [isAuthenticated, isLoadingAuth, navigate, returnTo]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setMode('recovery');
+      }
+    });
+    // Also check URL hash for recovery token (Supabase sometimes uses hash)
+    if (window.location.hash?.includes('type=recovery')) {
+      setMode('recovery');
+    }
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // Don't auto-redirect if user is in recovery mode (resetting password)
+    if (!isLoadingAuth && isAuthenticated && mode !== 'recovery') navigate(returnTo, { replace: true });
+  }, [isAuthenticated, isLoadingAuth, navigate, returnTo, mode]);
 
   const checkRateLimit = () => {
     if (cooldownUntil && Date.now() < cooldownUntil) {
@@ -170,6 +187,36 @@ export default function Login() {
     }
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      toast.error('Please fill in both password fields.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Password updated! You are now signed in.');
+      setMode('signin');
+      setNewPassword('');
+      setConfirmPassword('');
+      navigate(returnTo, { replace: true });
+    } catch (err) {
+      toast.error(err.message || 'Failed to update password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (isLoadingAuth) return (
     <div className="min-h-screen flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-accent" />
@@ -177,6 +224,7 @@ export default function Login() {
   );
 
   const isSignUp = mode === 'signup';
+  const isRecovery = mode === 'recovery';
   const isCoolingDown = cooldownUntil && Date.now() < cooldownUntil;
 
   return (
@@ -202,14 +250,16 @@ export default function Login() {
             </span>
           </Link>
           <h1 className="text-xl font-semibold text-foreground">
-            {sent ? 'Check your email' : isSignUp ? 'Create your account' : 'Sign in to MiNest'}
+            {sent ? 'Check your email' : isRecovery ? 'Set new password' : isSignUp ? 'Create your account' : 'Sign in to MiNest'}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {sent
               ? `We sent a sign-in link to ${email}`
-              : isSignUp
-                ? 'Join thousands finding rooms across Canada & USA.'
-                : 'Find rooms, roommates & pay rent online.'}
+              : isRecovery
+                ? 'Enter your new password below.'
+                : isSignUp
+                  ? 'Join thousands finding rooms across Canada & USA.'
+                  : 'Find rooms, roommates & pay rent online.'}
           </p>
         </div>
 
@@ -223,6 +273,48 @@ export default function Login() {
             <Button variant="ghost" className="w-full text-sm" onClick={() => { setSent(false); setEmail(''); }}>
               Use a different email
             </Button>
+          </div>
+        ) : isRecovery ? (
+          <div className="space-y-4">
+            <form onSubmit={handleUpdatePassword} className="space-y-3">
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="New password (6+ characters)"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                  autoFocus
+                  className="h-11 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+                className="h-11"
+              />
+              <Button
+                type="submit"
+                className="w-full h-11 bg-foreground hover:bg-foreground/90 text-background gap-2 font-semibold"
+                disabled={loading || !newPassword || !confirmPassword}
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                Update Password
+              </Button>
+            </form>
           </div>
         ) : (
           <div className="space-y-4">
