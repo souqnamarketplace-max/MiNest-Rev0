@@ -225,8 +225,7 @@ export default function ListingDetail() {
         await entities.Message.create({
           conversation_id: convo.id,
           sender_user_id: user.id,
-          sender_name: user.full_name || user.email,
-          text: message,
+          content: message,
         });
         await entities.Conversation.update(convo.id, {
           last_message_text: message,

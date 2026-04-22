@@ -107,8 +107,7 @@ export default function Messages() {
       await entities.Message.create({
         conversation_id: selectedId,
         sender_user_id: user.id,
-        sender_name: displayName,
-        text: messageText,
+        content: messageText,
       });
 
       await entities.Conversation.update(selectedId, {
