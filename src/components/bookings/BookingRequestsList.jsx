@@ -58,7 +58,7 @@ export default function BookingRequestsList() {
       toast.success(action === "confirmed" ? "Booking confirmed!" : "Booking declined.");
       // Notify the guest
       if (action === "confirmed") {
-        notifyBookingConfirmed({ guestId: booking.guest_user_id, listingTitle: booking.listing_title, checkIn: booking.check_in });
+        notifyBookingConfirmed({ guestId: booking.guest_user_id, listingTitle: booking.listing_title, checkIn: booking.checkin_date || booking.check_in });
       } else {
         notifyBookingDeclined({ guestId: booking.guest_user_id, listingTitle: booking.listing_title });
       }
