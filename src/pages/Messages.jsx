@@ -218,6 +218,8 @@ export default function Messages() {
           <MessageThread
             messages={messages}
             currentUserId={user.id}
+            otherUserAvatar={selectedConvo.other_user_avatar}
+            otherUserName={selectedConvo.other_user_display_name || selectedConvo.primary_title}
             isLoading={loadingMessages}
           />
           <MessageComposer

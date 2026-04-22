@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutDashboard, Search, Users } from "lucide-react";
+import { Home, LayoutDashboard, Search, Users, MessageSquare } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { entities } from "@/api/entities";
 
 import { saveScrollPosition, getScrollPosition, saveTabPath, getTabPath } from "@/lib/navScrollCache";
 
@@ -10,11 +11,26 @@ export default function MobileBottomNav() {
   const navigate = useNavigate();
   const { user, navigateToLogin, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
     setIsLoading(false);
   }, [user]);
+
+  // Poll for unread message notifications
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchUnread = async () => {
+      try {
+        const notifs = await entities.Notification.filter({ user_id: user.id, read: false, type: "new_message" });
+        setUnreadMessages(notifs?.length || 0);
+      } catch {}
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   // Save scroll position and full path whenever location changes
   useEffect(() => {
@@ -48,8 +64,8 @@ export default function MobileBottomNav() {
     { label: "Home", icon: Home, path: "/" },
     { label: "Find Place", icon: Search, path: "/search" },
     { label: "Roommates", icon: Users, path: "/roommates" },
+    ...(user ? [{ label: "Messages", icon: MessageSquare, path: "/messages", badge: unreadMessages }] : []),
     ...(user ? [{ label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" }] : []),
-
   ];
 
   if (!isLoading && navItems.length === 0) return null;
@@ -70,7 +86,14 @@ export default function MobileBottomNav() {
                 active ? "text-accent" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <div className="relative">
+                <Icon className="w-5 h-5" />
+                {item.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {item.badge > 9 ? "9+" : item.badge}
+                  </span>
+                )}
+              </div>
               <span className="text-xs font-medium">{item.label}</span>
             </button>
           );
