@@ -341,14 +341,17 @@ export default function SearchRooms() {
       setCityInput("");
     }
     if (key === "province_or_state") localStorage.removeItem('minest-last-province');
+    // Keep locationDetected true so geo/seeker layers don't re-trigger
+    setLocationDetected(true);
   };
 
   const handleClearAllFilters = () => {
     setCityInput("");
-    setFilters({ city: "", country: "", sort: "-created_at" });
+    setFilters({ city: "", country: "", province_or_state: "", sort: "-created_at" });
     localStorage.removeItem('minest-last-city');
     localStorage.removeItem('minest-last-province');
-    setLocationDetected(false);
+    // Keep locationDetected true so auto-detection doesn't re-fill after clearing
+    setLocationDetected(true);
   };
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
