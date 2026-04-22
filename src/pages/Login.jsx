@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const { isAuthenticated, isLoadingAuth } = useAuth();
@@ -88,6 +88,8 @@ export default function Login() {
         options: { redirectTo: `${window.location.origin}${returnTo}` },
       });
       if (error) throw error;
+      // Reset after 10s in case popup was blocked or user cancelled
+      setTimeout(() => setGoogleLoading(false), 10000);
     } catch (err) {
       toast.error(err.message || 'Google sign-in failed.');
       setGoogleLoading(false);
@@ -103,6 +105,16 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-sm">
+        {/* Back to browsing */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+        </div>
+
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-1.5 mb-4">
             <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
@@ -125,7 +137,7 @@ export default function Login() {
             <div className="bg-accent/10 rounded-xl p-5 text-center">
               <Mail className="w-10 h-10 text-accent mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground mb-1">Link sent!</p>
-              <p className="text-xs text-muted-foreground">Click the link in your email to sign in.</p>
+              <p className="text-xs text-muted-foreground">Click the link in your email to sign in. If you don't see it, check your spam folder.</p>
             </div>
             <Button variant="ghost" className="w-full text-sm" onClick={() => { setSent(false); setEmail(''); }}>
               Use a different email
@@ -140,7 +152,7 @@ export default function Login() {
               Continue with Google
             </Button>
 
-<div className="relative">
+            <div className="relative">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
               <div className="relative flex justify-center text-xs"><span className="bg-background px-3 text-muted-foreground">or</span></div>
             </div>
@@ -152,14 +164,18 @@ export default function Login() {
                   Too many attempts. Try again in {cooldownSeconds}s
                 </div>
               ) : (
-                <Button type="submit" className="w-full h-11 bg-accent hover:bg-accent/90 text-accent-foreground gap-2" disabled={loading || !email.trim()}>
+                <Button type="submit" className="w-full h-11 bg-foreground hover:bg-foreground/90 text-background gap-2 font-semibold" disabled={loading || !email.trim()}>
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                   Send sign-in link
                 </Button>
               )}
             </form>
 
-            <p className="text-xs text-center text-muted-foreground pt-2">
+            <p className="text-xs text-center text-muted-foreground">
+              New to MiNest? We'll create your account automatically.
+            </p>
+
+            <p className="text-xs text-center text-muted-foreground pt-1">
               By signing in, you agree to our{' '}
               <Link to="/terms" className="underline hover:text-foreground">Terms</Link>{' '}and{' '}
               <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.

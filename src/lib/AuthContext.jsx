@@ -64,7 +64,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = (returnUrl) => {
-    const encoded = returnUrl ? `?returnTo=${encodeURIComponent(returnUrl)}` : '';
+    // Strip origin to create relative path — prevents open redirect and
+    // ensures Login.jsx's returnTo validation doesn't reject it
+    let relative = '';
+    if (returnUrl) {
+      try {
+        if (returnUrl.startsWith('http')) {
+          const url = new URL(returnUrl);
+          relative = url.pathname + url.search;
+        } else {
+          relative = returnUrl;
+        }
+      } catch {
+        relative = returnUrl;
+      }
+    }
+    const encoded = relative ? `?returnTo=${encodeURIComponent(relative)}` : '';
     window.location.href = `/login${encoded}`;
   };
 
