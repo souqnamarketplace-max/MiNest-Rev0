@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, LayoutDashboard, Search, Users, MessageSquare } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { entities } from "@/api/entities";
+import { supabase } from "@/lib/supabase";
 
 import { saveScrollPosition, getScrollPosition, saveTabPath, getTabPath } from "@/lib/navScrollCache";
 
@@ -18,9 +19,11 @@ export default function MobileBottomNav() {
     setIsLoading(false);
   }, [user]);
 
-  // Poll for unread message notifications
+  // Use Realtime subscription + initial fetch for unread messages (no polling)
   useEffect(() => {
     if (!user?.id) return;
+    
+    // Initial fetch
     const fetchUnread = async () => {
       try {
         const notifs = await entities.Notification.filter({ user_id: user.id, read: false, type: "new_message" });
@@ -28,8 +31,35 @@ export default function MobileBottomNav() {
       } catch {}
     };
     fetchUnread();
-    const interval = setInterval(fetchUnread, 15000);
-    return () => clearInterval(interval);
+
+    // Subscribe to new notifications via Realtime
+    const channelName = `bottom_nav_${user.id}_${Date.now()}`;
+    let channel;
+    try {
+      channel = supabase
+        .channel(channelName)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, () => fetchUnread())
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        }, () => fetchUnread())
+        .subscribe();
+    } catch {}
+
+    // Fallback poll every 60s (much less frequent than before)
+    const fallbackPoll = setInterval(fetchUnread, 60000);
+
+    return () => {
+      clearInterval(fallbackPoll);
+      if (channel) supabase.removeChannel(channel).catch(() => {});
+    };
   }, [user?.id]);
 
   // Save scroll position and full path whenever location changes
