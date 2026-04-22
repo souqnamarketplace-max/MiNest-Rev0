@@ -59,8 +59,8 @@ export default function CityRoomsPage() {
   useEffect(() => {
     const canonical = cityPageUrl(city);
     setPageMeta({
-      title: `Rooms for Rent in ${city}, ${province} | Verified Listings | MiNest`,
-      description: `Find verified rooms for rent in ${city}, ${province}. Browse private rooms, shared housing, and roommates updated daily. Free to search on MiNest.`,
+      title: `Rooms for Rent in ${city}${province ? `, ${province}` : ''} | Verified Listings | MiNest`,
+      description: `Find verified rooms for rent in ${city}${province ? `, ${province}` : ''}. Browse private rooms, shared housing, and roommates updated daily. Free to search on MiNest.`,
       canonical,
       ogType: "website",
     });

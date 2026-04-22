@@ -54,6 +54,7 @@ export function getNearbyCities(citySlug) {
 // ─── City metadata ─────────────────────────────────────────────────────────────
 
 const CITY_PROVINCE = {
+  // Canada
   toronto: "Ontario", mississauga: "Ontario", brampton: "Ontario", ottawa: "Ontario",
   hamilton: "Ontario", london: "Ontario", kitchener: "Ontario", windsor: "Ontario",
   vancouver: "British Columbia", burnaby: "British Columbia", surrey: "British Columbia",
@@ -63,11 +64,48 @@ const CITY_PROVINCE = {
   winnipeg: "Manitoba",
   saskatoon: "Saskatchewan", regina: "Saskatchewan",
   halifax: "Nova Scotia",
+  // United States
+  "new york": "New York", "new-york": "New York", nyc: "New York", manhattan: "New York", brooklyn: "New York",
+  "los angeles": "California", "los-angeles": "California", "san francisco": "California", "san-francisco": "California",
+  seattle: "Washington",
+  austin: "Texas", dallas: "Texas", houston: "Texas", "san antonio": "Texas", "san-antonio": "Texas",
+  chicago: "Illinois",
+  washington: "District of Columbia", "washington dc": "District of Columbia",
+  miami: "Florida", orlando: "Florida", tampa: "Florida", jacksonville: "Florida",
+  portland: "Oregon",
+  denver: "Colorado",
+  minneapolis: "Minnesota",
+  boston: "Massachusetts",
+  phoenix: "Arizona",
+  "las vegas": "Nevada", "las-vegas": "Nevada",
+  atlanta: "Georgia",
+  philadelphia: "Pennsylvania",
+  detroit: "Michigan",
+  nashville: "Tennessee",
+  charlotte: "North Carolina",
+  "san diego": "California", "san-diego": "California",
 };
 
-export function getCityProvince(citySlug) {
-  return CITY_PROVINCE[citySlug.toLowerCase()] || "Canada";
+// Map city to country
+const CITY_COUNTRY = {
+  "new york": "USA", "new-york": "USA", nyc: "USA", manhattan: "USA", brooklyn: "USA",
+  "los angeles": "USA", "los-angeles": "USA", "san francisco": "USA", "san-francisco": "USA",
+  seattle: "USA", austin: "USA", dallas: "USA", houston: "USA", "san antonio": "USA", "san-antonio": "USA",
+  chicago: "USA", washington: "USA", "washington dc": "USA",
+  miami: "USA", orlando: "USA", tampa: "USA", jacksonville: "USA",
+  portland: "USA", denver: "USA", minneapolis: "USA", boston: "USA",
+  phoenix: "USA", "las vegas": "USA", "las-vegas": "USA",
+  atlanta: "USA", philadelphia: "USA", detroit: "USA",
+  nashville: "USA", charlotte: "USA", "san diego": "USA", "san-diego": "USA",
+};
+
+export function getCityCountry(citySlug) {
+  return CITY_COUNTRY[citySlug.toLowerCase()] || "Canada";
 }
+
+export function getCityProvince(citySlug) {
+  return CITY_PROVINCE[citySlug.toLowerCase()] || "";
+};
 
 // Rich per-city data for unique content and FAQ answers
 const CITY_RICH_DATA = {
@@ -168,7 +206,7 @@ const DEFAULT_CITY_DATA = {
   avgRent: "$600–$1,400/month",
   neighborhoods: "a range of neighbourhoods",
   transit: "local transit",
-  population: "a growing Canadian city",
+  population: "a growing city",
   tip: "Set up a saved search on MiNest to get instant alerts when new rooms are listed in your area.",
 };
 
@@ -183,7 +221,7 @@ export function generateCityContent(city) {
   const province = getCityProvince(slug);
   const data = getCityData(slug);
 
-  const intro = `Looking for rooms for rent in ${city}, ${province}? MiNest is ${data.population}'s trusted shared housing platform. Browse verified private rooms, shared apartments, and roommates in ${data.neighborhoods}. Listings are updated daily — and our compatibility matching helps you find housemates who fit your lifestyle and budget.`;
+  const intro = `Looking for rooms for rent in ${city}${province ? `, ${province}` : ''}? MiNest is ${data.population}'s trusted shared housing platform. Browse verified private rooms, shared apartments, and roommates in ${data.neighborhoods}. Listings are updated daily — and our compatibility matching helps you find housemates who fit your lifestyle and budget.`;
 
   const market = `The rental market in ${city} ranges from ${data.avgRent} for a private room, depending on location, furnishing, and included utilities. MiNest features listings across ${city} with full details on rent, bills, pet policy, and minimum stay — so you can compare options honestly before reaching out. ${data.tip}`;
 
@@ -202,7 +240,7 @@ export function generateCityFAQs(city) {
   return [
     {
       question: `What is the average rent for a room in ${city}?`,
-      answer: `Private rooms in ${city}, ${province} typically range from ${data.avgRent}, depending on the neighbourhood, furnishing, and whether utilities are included. MiNest listings show the full breakdown — rent, deposit, and what's covered — so there are no surprises.`,
+      answer: `Private rooms in ${city}${province ? `, ${province}` : ''} typically range from ${data.avgRent}, depending on the neighbourhood, furnishing, and whether utilities are included. MiNest listings show the full breakdown — rent, deposit, and what's covered — so there are no surprises.`,
     },
     {
       question: `What types of rooms are available in ${city} on MiNest?`,
