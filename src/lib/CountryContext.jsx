@@ -54,8 +54,8 @@ async function fetchExchangeRate() {
     }
     // Try multiple CORS-friendly exchange rate sources
     const sources = [
-      'https://api.frankfurter.app/latest?from=CAD&to=USD',
       'https://open.er-api.com/v6/latest/CAD',
+      'https://api.exchangerate-api.com/v4/latest/CAD',
     ];
     for (const url of sources) {
       try {
