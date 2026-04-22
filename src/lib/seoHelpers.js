@@ -203,15 +203,103 @@ const CITY_RICH_DATA = {
 };
 
 const DEFAULT_CITY_DATA = {
-  avgRent: "$600–$1,400/month",
-  neighborhoods: "a range of neighbourhoods",
-  transit: "local transit",
-  population: "a growing city",
+  avgRent: "$700–$1,500/month",
+  neighborhoods: "a variety of neighborhoods across the city",
+  transit: "local transit options",
+  population: "a vibrant and growing city",
   tip: "Set up a saved search on MiNest to get instant alerts when new rooms are listed in your area.",
 };
 
+// US city data
+const US_CITY_RICH_DATA = {
+  "new york": {
+    avgRent: "$1,200–$2,500/month",
+    neighborhoods: "Brooklyn, Manhattan, Queens, the East Village, and Williamsburg",
+    transit: "the MTA subway, bus, and commuter rail network",
+    population: "the largest city in the United States",
+    tip: "NYC rooms go fast — set up a saved search alert on MiNest to be the first to know when new listings go live in your preferred borough.",
+  },
+  "los angeles": {
+    avgRent: "$1,000–$2,000/month",
+    neighborhoods: "Santa Monica, Silver Lake, the Arts District, Koreatown, and West Hollywood",
+    transit: "the Metro rail and bus system, plus major freeway access",
+    population: "one of America's most dynamic and diverse cities",
+    tip: "LA is spread out — filter by neighborhood on MiNest to find rooms near your workplace or school and save on commute time.",
+  },
+  "san francisco": {
+    avgRent: "$1,300–$2,500/month",
+    neighborhoods: "the Mission, SoMa, Hayes Valley, Nob Hill, and the Sunset District",
+    transit: "BART rapid transit, Muni buses and light rail",
+    population: "a world-renowned tech hub on the West Coast",
+    tip: "San Francisco has one of the tightest rental markets in the US. Complete your MiNest profile with verified ID to stand out to hosts.",
+  },
+  seattle: {
+    avgRent: "$900–$1,600/month",
+    neighborhoods: "Capitol Hill, Ballard, Fremont, South Lake Union, and the University District",
+    transit: "Sound Transit Link light rail and King County Metro buses",
+    population: "the Pacific Northwest's largest city and a major tech hub",
+    tip: "Rooms near Link Light Rail stations fill quickly — use MiNest's map view to find listings along transit corridors.",
+  },
+  austin: {
+    avgRent: "$750–$1,400/month",
+    neighborhoods: "East Austin, Downtown, South Congress, Hyde Park, and the Domain",
+    transit: "Capital Metro bus and MetroRail service",
+    population: "one of America's fastest-growing cities and a major tech hub",
+    tip: "Austin's rental market is booming. Listings on MiNest with utilities included are popular — use the 'bills included' filter to find them.",
+  },
+  chicago: {
+    avgRent: "$800–$1,500/month",
+    neighborhoods: "Wicker Park, Lincoln Park, Lakeview, Logan Square, and Hyde Park",
+    transit: "the CTA 'L' train and extensive bus network",
+    population: "the third-largest city in the United States",
+    tip: "Chicago has great value compared to coastal cities. Look for rooms near the Blue or Red Line on MiNest for easy commuting.",
+  },
+  washington: {
+    avgRent: "$1,100–$1,800/month",
+    neighborhoods: "Dupont Circle, Georgetown, Capitol Hill, Adams Morgan, and Columbia Heights",
+    transit: "the WMATA Metrorail and Metrobus system",
+    population: "the nation's capital with a large professional and government workforce",
+    tip: "DC rooms near Metro stations command a premium. Use MiNest's price filter to compare options across neighborhoods.",
+  },
+  miami: {
+    avgRent: "$900–$1,600/month",
+    neighborhoods: "South Beach, Wynwood, Brickell, Coral Gables, and Little Havana",
+    transit: "Metrorail, Metromover, and Metrobus throughout Miami-Dade",
+    population: "a vibrant, international city known for its culture and beaches",
+    tip: "Miami's rental market is seasonal — prices peak in winter. Search on MiNest year-round to find the best deals.",
+  },
+  portland: {
+    avgRent: "$800–$1,400/month",
+    neighborhoods: "the Pearl District, Hawthorne, Alberta Arts, Division, and Sellwood",
+    transit: "TriMet MAX light rail and bus network",
+    population: "a creative and eco-conscious city in the Pacific Northwest",
+    tip: "Portland is very bike-friendly — filter by neighborhood on MiNest and consider biking distance instead of transit for even more options.",
+  },
+  denver: {
+    avgRent: "$800–$1,400/month",
+    neighborhoods: "the Highlands, RiNo, Capitol Hill, Cherry Creek, and LoDo",
+    transit: "RTD light rail and bus network",
+    population: "a fast-growing city at the foot of the Rocky Mountains",
+    tip: "Denver's housing market is competitive. Having a complete MiNest profile with photos and a bio helps you stand out to hosts.",
+  },
+  minneapolis: {
+    avgRent: "$650–$1,200/month",
+    neighborhoods: "Uptown, Northeast, North Loop, Whittier, and Loring Park",
+    transit: "Metro Transit light rail and bus system",
+    population: "a vibrant Midwestern city with a thriving arts and food scene",
+    tip: "Minneapolis offers great value compared to coastal cities. Use MiNest's 'heat and water included' filter — it's common here.",
+  },
+  boston: {
+    avgRent: "$1,200–$2,200/month",
+    neighborhoods: "Back Bay, Allston, Cambridge, Somerville, and Jamaica Plain",
+    transit: "the MBTA subway (the T), bus, and commuter rail",
+    population: "a historic city with world-class universities and a thriving job market",
+    tip: "Boston's rental cycle revolves around September 1 move-ins. Start searching on MiNest at least 2-3 months in advance for the best selection.",
+  },
+};
+
 function getCityData(citySlug) {
-  return CITY_RICH_DATA[citySlug.toLowerCase()] || DEFAULT_CITY_DATA;
+  return CITY_RICH_DATA[citySlug.toLowerCase()] || US_CITY_RICH_DATA[citySlug.toLowerCase()] || DEFAULT_CITY_DATA;
 }
 
 // ─── City content generation ─────────────────────────────────────────────────
@@ -221,7 +309,9 @@ export function generateCityContent(city) {
   const province = getCityProvince(slug);
   const data = getCityData(slug);
 
-  const intro = `Looking for rooms for rent in ${city}${province ? `, ${province}` : ''}? MiNest is ${data.population}'s trusted shared housing platform. Browse verified private rooms, shared apartments, and roommates in ${data.neighborhoods}. Listings are updated daily — and our compatibility matching helps you find housemates who fit your lifestyle and budget.`;
+  const locationLabel = province ? `${city}, ${province}` : city;
+
+  const intro = `Looking for rooms for rent in ${locationLabel}? MiNest is the trusted shared housing platform for ${locationLabel} — ${data.population}. Browse verified private rooms, shared apartments, and roommates in ${data.neighborhoods}. Listings are updated daily — and our compatibility matching helps you find housemates who fit your lifestyle and budget.`;
 
   const market = `The rental market in ${city} ranges from ${data.avgRent} for a private room, depending on location, furnishing, and included utilities. MiNest features listings across ${city} with full details on rent, bills, pet policy, and minimum stay — so you can compare options honestly before reaching out. ${data.tip}`;
 
