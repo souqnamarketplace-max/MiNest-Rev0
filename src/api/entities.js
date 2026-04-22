@@ -136,6 +136,7 @@ export const entities = {
   Report:                 makeEntity('reports'),
   DeviceToken:            makeEntity('device_tokens'),
   Booking:                makeEntity('bookings'),
+  SiteContent:            makeEntity('site_content'),
 };
 
 // Upload file to Supabase Storage

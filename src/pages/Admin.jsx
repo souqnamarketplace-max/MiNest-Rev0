@@ -20,6 +20,7 @@ import PaymentTransactionsPanel from "@/components/admin/PaymentTransactionsPane
 import RentalAgreementsPanel from "@/components/admin/RentalAgreementsPanel";
 import MarketAnalyticsPanel from "@/components/admin/MarketAnalyticsPanel";
 import SupportRequestsPanel from "@/components/admin/SupportRequestsPanel";
+import LegalPagesPanel from "@/components/admin/LegalPagesPanel";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -98,6 +99,7 @@ export default function Admin() {
           <TabsTrigger value="rentals"><FileText className="w-3.5 h-3.5 mr-1" />Rentals</TabsTrigger>
           <TabsTrigger value="analytics"><BarChart2 className="w-3.5 h-3.5 mr-1" />Analytics</TabsTrigger>
           <TabsTrigger value="support"><MessageSquare className="w-3.5 h-3.5 mr-1" />Support</TabsTrigger>
+          <TabsTrigger value="legal"><FileText className="w-3.5 h-3.5 mr-1" />Legal</TabsTrigger>
           <a href="/admin/email-test" className="px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 rounded-lg flex items-center gap-1"><Mail className="w-3.5 h-3.5" />Test Emails</a>
         </TabsList>
 
@@ -133,6 +135,7 @@ export default function Admin() {
         <TabsContent value="rentals"><RentalAgreementsPanel /></TabsContent>
         <TabsContent value="analytics"><MarketAnalyticsPanel /></TabsContent>
         <TabsContent value="support"><SupportRequestsPanel /></TabsContent>
+        <TabsContent value="legal"><LegalPagesPanel /></TabsContent>
       </Tabs>
 
       {editingListing && (
