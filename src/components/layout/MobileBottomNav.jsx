@@ -70,7 +70,8 @@ export default function MobileBottomNav() {
 
   if (!isLoading && navItems.length === 0) return null;
   // Hide on messages page when a conversation is open
-  if (location.pathname === "/messages") return null;
+  const searchParams = new URLSearchParams(location.search);
+  if (location.pathname === "/messages" && searchParams.has("id")) return null;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>

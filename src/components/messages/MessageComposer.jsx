@@ -41,8 +41,8 @@ export default function MessageComposer({
   };
 
   return (
-    <div className="sticky bottom-0 bg-card border-t border-border p-3 sm:p-4">
-      <div className="flex gap-2">
+    <div className="flex-shrink-0 bg-card border-t border-border p-3 sm:p-4 safe-area-bottom">
+      <div className="flex gap-2 items-end max-w-full">
         <textarea
           ref={textareaRef}
           value={message}
@@ -50,17 +50,17 @@ export default function MessageComposer({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled || isLoading}
-          className="flex-1 px-5 py-4 sm:px-4 sm:py-3 border border-border rounded-lg text-lg sm:text-base resize-none focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+          className="flex-1 min-w-0 px-4 py-3 border border-border rounded-xl text-base resize-none focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50 bg-muted/30"
           rows={1}
-          style={{ minHeight: "64px", maxHeight: "120px" }}
+          style={{ minHeight: "48px", maxHeight: "120px" }}
         />
         <Button
           onClick={handleSend}
           disabled={!message.trim() || disabled || isLoading}
-          className="bg-accent hover:bg-accent/90 text-accent-foreground flex-shrink-0 h-14 w-14 sm:h-12 sm:w-12"
+          className="bg-accent hover:bg-accent/90 text-accent-foreground flex-shrink-0 h-12 w-12 rounded-xl"
           size="icon"
         >
-          <Send className="w-5 h-5 sm:w-4 sm:h-4" />
+          <Send className="w-5 h-5" />
         </Button>
       </div>
     </div>

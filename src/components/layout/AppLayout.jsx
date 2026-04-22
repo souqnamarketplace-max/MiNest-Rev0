@@ -28,7 +28,7 @@ export default function AppLayout() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col bg-background font-inter lg:pb-0 ${isMessages ? "pb-0" : "pb-16 lg:pb-0"}`} style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div className={`min-h-screen flex flex-col bg-background font-inter lg:pb-0 overflow-x-hidden ${isMessages ? "pb-0" : "pb-16 lg:pb-0"}`} style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)", paddingBottom: "env(safe-area-inset-bottom)" }}>
       {/* Pull-to-refresh indicator */}
       {(pulling || refreshing) && (
         <div

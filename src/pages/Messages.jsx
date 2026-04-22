@@ -165,16 +165,11 @@ export default function Messages() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col overflow-hidden max-w-full">
       {missingFields.length > 0 && <div className="p-4"><ProfileIncompleteWarning userType="lister" missingFields={missingFields} /></div>}
-      <div className="h-[calc(100vh-64px)] bg-background flex flex-col md:flex-row overflow-hidden">
+      <div className="h-[calc(100dvh-64px)] bg-background flex flex-col md:flex-row overflow-hidden w-full">
       {/* Desktop: Conversation list sidebar */}
-      <div className="hidden md:flex md:flex-col">
-        {selectedId ? null : (
-          <div className="md:hidden p-4">
-            <h1 className="text-2xl font-bold text-foreground">Messages</h1>
-          </div>
-        )}
+      <div className="hidden md:flex md:flex-col flex-shrink-0">
         <ConversationList
           conversations={conversations}
           isLoading={loadingConvos}
@@ -185,8 +180,8 @@ export default function Messages() {
 
       {/* Mobile: Conversation list or thread */}
       {!selectedId ? (
-        <div className="flex-1 flex flex-col md:hidden bg-card">
-          <div className="p-4 border-b border-border">
+        <div className="flex-1 flex flex-col md:hidden bg-card overflow-hidden">
+          <div className="p-4 border-b border-border flex-shrink-0">
             <h2 className="text-2xl font-bold text-foreground">Messages</h2>
           </div>
           {/* Pull-to-refresh indicator */}
@@ -207,9 +202,9 @@ export default function Messages() {
         </div>
       ) : null}
 
-      {/* Desktop/Tablet: Thread area */}
+      {/* Thread area — both mobile and desktop */}
       {selectedConvo && (
-        <div className={`flex-1 flex flex-col md:flex ${!selectedId ? "hidden md:flex" : "flex"}`}>
+        <div className={`flex-1 flex flex-col overflow-hidden ${!selectedId ? "hidden md:flex" : "flex"}`}>
           <ConversationHeader
             conversation={selectedConvo}
             onBack={() => setSelectedId(null)}
