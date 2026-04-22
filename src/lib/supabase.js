@@ -7,17 +7,34 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase env vars. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local');
 }
 
+// Safari / Incognito fallback: use in-memory storage if localStorage is blocked
+const memoryStorage = {};
+const safeStorage = {
+  getItem: (key) => {
+    try { return localStorage.getItem(key); }
+    catch { return memoryStorage[key] ?? null; }
+  },
+  setItem: (key, value) => {
+    try { localStorage.setItem(key, value); }
+    catch { memoryStorage[key] = value; }
+  },
+  removeItem: (key) => {
+    try { localStorage.removeItem(key); }
+    catch { delete memoryStorage[key]; }
+  },
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    // Prevent NavigatorLockAcquireTimeoutError with service workers
     storageKey: 'minest-auth-token',
-    flowType: 'pkce',
+    storage: safeStorage,
+    // Use implicit flow for broader Safari/Incognito compatibility
+    // PKCE requires localStorage for code_verifier which can fail in restricted environments
+    flowType: 'implicit',
     lock: async (name, acquireTimeout, fn) => {
-      // Custom lock implementation that doesn't use navigator.locks
-      // to avoid conflicts with service workers
       return await fn();
     },
   },
