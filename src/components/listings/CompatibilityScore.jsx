@@ -16,9 +16,10 @@ export default function CompatibilityScore({ listing, seeker }) {
     }
 
     // Budget match
-    if (seeker.min_budget && seeker.max_budget && listing.rent_amount || listing.monthly_rent) {
+    const rentAmount = Number(listing.rent_amount || listing.monthly_rent || 0);
+    if (seeker.min_budget && seeker.max_budget && rentAmount > 0) {
       total += 1;
-      if (listing.rent_amount || listing.monthly_rent >= seeker.min_budget && listing.rent_amount || listing.monthly_rent <= seeker.max_budget) points += 1;
+      if (rentAmount >= Number(seeker.min_budget) && rentAmount <= Number(seeker.max_budget)) points += 1;
     }
 
     // Cleanliness
