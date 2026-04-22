@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 
-export default function MessageThread({ messages, currentUserEmail, isLoading }) {
+export default function MessageThread({ messages, currentUserId, currentUserEmail, isLoading }) {
   const containerRef = useRef(null);
 
-  const scrollToBottom = (smooth = false) => {
+  const scrollToBottom = () => {
     if (!containerRef.current) return;
     containerRef.current.scrollTop = containerRef.current.scrollHeight;
   };
@@ -13,19 +13,45 @@ export default function MessageThread({ messages, currentUserEmail, isLoading })
     scrollToBottom();
   }, [messages]);
 
+  // Safely get a date string from a message object
+  const getMessageDate = (msg) => msg.created_at || msg.created_date || msg.sent_at || "";
+
+  // Safely format a date label with full error protection
   const getDateLabel = (dateStr) => {
-    const date = new Date(dateStr);
-    if (isToday(date)) return "Today";
-    if (isYesterday(date)) return "Yesterday";
-    return format(date, "MMM d, yyyy");
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "";
+      if (isToday(date)) return "Today";
+      if (isYesterday(date)) return "Yesterday";
+      return format(date, "MMM d, yyyy");
+    } catch {
+      return "";
+    }
   };
 
+  // Safely format a relative time
+  const getTimeAgo = (msg) => {
+    const dateStr = getMessageDate(msg);
+    if (!dateStr) return "";
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return "";
+      return formatDistanceToNow(date, { addSuffix: false });
+    } catch {
+      return "";
+    }
+  };
+
+  // Group messages by date
   const groupedMessages = messages.reduce((acc, msg, idx) => {
-    const msgDate = new Date(msg.created_date).toDateString();
-    const prevDate = idx > 0 ? new Date(messages[idx - 1].created_date).toDateString() : null;
-    
-    if (msgDate !== prevDate) {
-      acc.push({ type: "date", date: msg.created_date });
+    const msgDateStr = getMessageDate(msg);
+    const msgDate = msgDateStr ? new Date(msgDateStr).toDateString() : "";
+    const prevDateStr = idx > 0 ? getMessageDate(messages[idx - 1]) : "";
+    const prevDate = prevDateStr ? new Date(prevDateStr).toDateString() : null;
+
+    if (msgDate && msgDate !== prevDate) {
+      acc.push({ type: "date", date: msgDateStr });
     }
     acc.push(msg);
     return acc;
@@ -73,10 +99,12 @@ export default function MessageThread({ messages, currentUserEmail, isLoading })
         }
 
         const msg = item;
-        const isOwn = msg.sender_id === currentUserEmail;
+        // Match sender using UUID (sender_user_id) or email (sender_id) for backward compat
+        const isOwn = msg.sender_user_id === (currentUserId || currentUserEmail)
+          || msg.sender_id === (currentUserId || currentUserEmail);
 
         return (
-          <div key={msg.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
+          <div key={msg.id || `msg-${idx}`} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[70%] sm:max-w-[60%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 isOwn
@@ -85,14 +113,15 @@ export default function MessageThread({ messages, currentUserEmail, isLoading })
               }`}
             >
               <p>{msg.content || msg.text}</p>
-              <p className={`text-xs mt-1 opacity-70 ${isOwn ? "" : ""}`}>
-                {formatDistanceToNow(new Date(msg.created_date), { addSuffix: false })}
-              </p>
+              {getTimeAgo(msg) && (
+                <p className="text-xs mt-1 opacity-70">
+                  {getTimeAgo(msg)}
+                </p>
+              )}
             </div>
           </div>
         );
       })}
-
     </div>
   );
 }
