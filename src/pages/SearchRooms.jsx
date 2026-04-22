@@ -22,6 +22,7 @@ export default function SearchRooms() {
   const [cityInput, setCityInput] = useState(urlParams.get("city") || "");
   const { country: currentCountry } = useCountry();
   const storedCountry = localStorage.getItem('minest-country') || '';
+  const hostFilter = urlParams.get("host") || "";
 
   const [filters, setFilters] = useState({
     city: urlParams.get("city") || "",
@@ -169,6 +170,7 @@ export default function SearchRooms() {
 
   const filterQuery = useMemo(() => {
     const q = { status: "active" };
+    if (hostFilter) q.owner_user_id = hostFilter;
     if (filters.country) q.country = filters.country;
     if (filters.province_or_state) q.province_or_state = filters.province_or_state;
     if (filters.city) q.city = { $regex: filters.city, $options: "i" };

@@ -3,7 +3,7 @@ import { listingUrl } from '@/lib/listingHelpers';
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, MapPin, Wifi, Car, Sparkles, ShieldCheck, Bed, Bath, CreditCard, Mail } from "lucide-react";
+import { Heart, MapPin, Wifi, Car, Sparkles, ShieldCheck, Bed, Bath, CreditCard, Mail, TrendingDown, Footprints, Train, Bike } from "lucide-react";
 import { formatRentPrice, formatEquivalentMonthly, getCurrencyByCountry } from "@/lib/pricingHelpers";
 import { getParkingCardDisplay } from "@/lib/parkingHelpers";
 import ShareButton from "@/components/common/ShareButton.jsx";
@@ -13,21 +13,38 @@ import { useAuth } from "@/lib/AuthContext";
 import SignInRequiredModal from "@/components/modals/SignInRequiredModal";
 import { useCountry } from "@/lib/CountryContext";
 
+function getScoreDot(score) {
+  if (score >= 70) return "bg-emerald-500";
+  if (score >= 50) return "bg-yellow-500";
+  return "bg-orange-500";
+}
+
 export default function ListingCard({ listing, isFavorited, onToggleFavorite }) {
-  const { user, navigateToLogin, logout } = useAuth();
+  const { user } = useAuth();
   const { country, convertPrice } = useCountry();
   const currency = getCurrencyByCountry(country);
   const [openOffer, setOpenOffer] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
-  // Build amenity list (limit to 2 core amenities for cleanliness)
+
   const amenities = [];
   if (listing.internet_included) amenities.push({ icon: Wifi, label: "Internet" });
   if (getParkingCardDisplay(listing)) amenities.push({ icon: Car, label: "Parking" });
   if (listing.bills_included) amenities.push({ label: "Bills Incl." });
   if (listing.furnishing === "furnished") amenities.push({ label: "Furnished" });
 
-  // Room type label
   const roomTypeLabel = listing.listing_type?.replace(/_/g, " ") || "Room";
+
+  // Price drop detection
+  const currentRent = listing.rent_amount || listing.monthly_rent || 0;
+  const previousRent = listing.previous_rent;
+  const hasPriceDrop = previousRent && previousRent > currentRent;
+  const priceDropPct = hasPriceDrop ? Math.round(((previousRent - currentRent) / previousRent) * 100) : 0;
+
+  // Rented status
+  const isRented = listing.status === "rented";
+
+  // Walk scores
+  const hasWalkScore = listing.walk_score != null;
 
   const handleOpenRequest = (e) => {
     e.preventDefault();
@@ -42,7 +59,7 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
   return (
     <>
     <Link to={`/listing/${listing.slug || listing.id}`} className="block group">
-      <div className="h-full rounded-2xl border border-border bg-card overflow-hidden hover:shadow-md transition-all duration-300 hover:border-accent/30 flex flex-col">
+      <div className={`h-full rounded-2xl border bg-card overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col ${isRented ? "border-muted opacity-75" : "border-border hover:border-accent/30"}`}>
         
         {/* Image Container */}
         <div className="relative aspect-video bg-muted overflow-hidden flex-shrink-0">
@@ -50,7 +67,7 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
             <img
               src={listing.cover_photo_url}
               alt={listing.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className={`w-full h-full object-cover transition-transform duration-500 ${isRented ? "grayscale-[30%]" : "group-hover:scale-105"}`}
               loading="lazy"
               decoding="async"
             />
@@ -60,8 +77,22 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
             </div>
           )}
 
+          {/* Rented Overlay */}
+          {isRented && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <Badge className="bg-red-600 text-white text-sm font-bold px-4 py-1.5 shadow-lg">
+                Rented
+              </Badge>
+            </div>
+          )}
+
           {/* Status Badges - Top Left */}
           <div className="absolute top-3 left-3 flex gap-2">
+            {hasPriceDrop && !isRented && (
+              <Badge className="bg-emerald-600 text-white text-xs font-semibold gap-1 shadow-sm">
+                <TrendingDown className="w-3 h-3" /> {priceDropPct}% off
+              </Badge>
+            )}
             {listing.is_featured && (
               <Badge className="bg-accent text-accent-foreground text-xs font-semibold gap-1">
                 <Sparkles className="w-3 h-3" /> Featured
@@ -90,54 +121,36 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
 
           {/* Buttons - Top Right */}
           <div className="absolute top-3 right-3 flex gap-2">
-            <ShareButton 
-              path={listingUrl(listing)}
-              title={listing.title}
-            />
+            <ShareButton path={listingUrl(listing)} title={listing.title} />
             {onToggleFavorite && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="w-11 h-11 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-900 rounded-full shadow-sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onToggleFavorite(listing);
-                }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(listing); }}
               >
-                <Heart
-                  className={`w-4 h-4 transition-colors ${
-                    isFavorited
-                      ? "fill-destructive text-destructive"
-                      : "text-foreground/50 group-hover:text-foreground/80"
-                  }`}
-                />
+                <Heart className={`w-4 h-4 transition-colors ${isFavorited ? "fill-destructive text-destructive" : "text-foreground/50 group-hover:text-foreground/80"}`} />
               </Button>
             )}
           </div>
         </div>
 
-        {/* Content - Scrollable if needed */}
+        {/* Content */}
         <div className="p-4 flex flex-col gap-3 flex-grow">
           
-          {/* Price - DOMINANT */}
+          {/* Price */}
           <div>
-            <div className="text-2xl font-bold text-accent leading-tight">
-              {formatRentPrice(
-                listing.rent_amount || listing.monthly_rent,
-                listing.rent_period || "monthly",
-                currency,
-                convertPrice
+            <div className="flex items-center gap-2">
+              <span className="text-2xl font-bold text-accent leading-tight">
+                {formatRentPrice(currentRent, listing.rent_period || "monthly", currency, convertPrice)}
+              </span>
+              {hasPriceDrop && (
+                <span className="text-sm text-muted-foreground line-through">${previousRent.toLocaleString()}</span>
               )}
             </div>
             {listing.rent_period && listing.rent_period !== "monthly" && (
               <div className="text-xs text-muted-foreground mt-1">
                 ≈ {formatEquivalentMonthly(listing.rent_amount, listing.rent_period, currency, convertPrice)}
-              </div>
-            )}
-            {listing.price_history && listing.price_history.length > 0 && (
-              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                was {listing.currency_code} {listing.price_history[listing.price_history.length - 1].previous_amount}
               </div>
             )}
           </div>
@@ -150,20 +163,14 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
           {/* Location */}
           <div className="flex items-start gap-2 text-sm text-muted-foreground min-w-0">
             <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span className="line-clamp-1">
-              {[listing.city, listing.province_or_state].filter(Boolean).join(", ")}
-            </span>
+            <span className="line-clamp-1">{[listing.city, listing.province_or_state].filter(Boolean).join(", ")}</span>
           </div>
 
-          {/* Key Details - 2 columns for room type + key amenity */}
+          {/* Room type + Bathroom */}
           <div className="flex gap-2 text-xs flex-wrap">
-            {/* Room Type */}
             <Badge variant="outline" className="capitalize flex items-center gap-1">
-              <Bed className="w-3 h-3" />
-              {roomTypeLabel}
+              <Bed className="w-3 h-3" /> {roomTypeLabel}
             </Badge>
-
-            {/* Bathroom if available */}
             {listing.bathroom_type && (
               <Badge variant="outline" className="capitalize flex items-center gap-1">
                 <Bath className="w-3 h-3" />
@@ -172,7 +179,34 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
             )}
           </div>
 
-          {/* Amenities - subtle chips */}
+          {/* Walk / Transit / Bike Scores */}
+          {hasWalkScore && (
+            <div className="flex gap-3 text-xs text-muted-foreground">
+              {listing.walk_score != null && (
+                <div className="flex items-center gap-1" title={`Walk Score: ${listing.walk_score}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${getScoreDot(listing.walk_score)}`} />
+                  <Footprints className="w-3 h-3" />
+                  <span className="font-medium">{listing.walk_score}</span>
+                </div>
+              )}
+              {listing.transit_score != null && (
+                <div className="flex items-center gap-1" title={`Transit Score: ${listing.transit_score}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${getScoreDot(listing.transit_score)}`} />
+                  <Train className="w-3 h-3" />
+                  <span className="font-medium">{listing.transit_score}</span>
+                </div>
+              )}
+              {listing.bike_score != null && (
+                <div className="flex items-center gap-1" title={`Bike Score: ${listing.bike_score}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${getScoreDot(listing.bike_score)}`} />
+                  <Bike className="w-3 h-3" />
+                  <span className="font-medium">{listing.bike_score}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Amenities */}
           {amenities.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border/50">
               {amenities.slice(0, 2).map((a, i) => (
@@ -184,38 +218,26 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
             </div>
           )}
 
-          {/* Send Rental Request Button */}
-          {listing.payments_enabled && (
+          {/* Rental Request — hidden if rented */}
+          {listing.payments_enabled && !isRented && (
             <div className="mt-auto pt-2 border-t border-border/50">
-              <Button
-                onClick={handleOpenRequest}
-                variant="outline"
-                size="sm"
-                className="w-full text-xs gap-1.5"
-              >
+              <Button onClick={handleOpenRequest} variant="outline" size="sm" className="w-full text-xs gap-1.5">
                 <Mail className="w-3 h-3" /> Send Rental Request
               </Button>
             </div>
           )}
-          </div>
-          </div>
-          </Link>
+        </div>
+      </div>
+    </Link>
 
-          {/* Rental Request Modal - always rendered, controlled by open prop */}
-          <TenantRentalRequestModal
-            open={openOffer}
-            onOpenChange={setOpenOffer}
-            listing={listing}
-          />
-
-          {/* Sign In Required Modal */}
-          <SignInRequiredModal
-            open={signInModalOpen}
-            onOpenChange={setSignInModalOpen}
-            title="Sign in to send a rental request"
-            description="Create an account or sign in to send a rental request and discuss terms with the host."
-            listingId={listing.id}
-          />
-          </>
-          );
-          }
+    <TenantRentalRequestModal open={openOffer} onOpenChange={setOpenOffer} listing={listing} />
+    <SignInRequiredModal
+      open={signInModalOpen}
+      onOpenChange={setSignInModalOpen}
+      title="Sign in to send a rental request"
+      description="Create an account or sign in to send a rental request and discuss terms with the host."
+      listingId={listing.id}
+    />
+    </>
+  );
+}

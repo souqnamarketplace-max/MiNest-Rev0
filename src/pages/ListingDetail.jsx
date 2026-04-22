@@ -761,6 +761,48 @@ export default function ListingDetail() {
               </div>
             )}
 
+            {/* Mark as Rented / Re-activate — Owner only */}
+            {isOwner && listing.status !== "rented" && (
+              <Button
+                variant="outline"
+                className="w-full text-sm gap-2 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                onClick={async () => {
+                  if (!window.confirm("Mark this listing as rented? It will be hidden from search after 7 days.")) return;
+                  await entities.Listing.update(listing.id, { status: "rented" });
+                  queryClient.invalidateQueries({ queryKey: ["listing", id] });
+                  toast.success("Listing marked as rented. It will auto-archive in 7 days.");
+                }}
+              >
+                Mark as Rented
+              </Button>
+            )}
+            {isOwner && listing.status === "rented" && (
+              <div className="space-y-2">
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400 text-center">
+                  This listing is marked as <strong>rented</strong>. It will auto-archive in 7 days.
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full text-sm gap-2"
+                  onClick={async () => {
+                    await entities.Listing.update(listing.id, { status: "active" });
+                    queryClient.invalidateQueries({ queryKey: ["listing", id] });
+                    toast.success("Listing re-activated and visible in search.");
+                  }}
+                >
+                  Re-activate Listing
+                </Button>
+              </div>
+            )}
+
+            {/* Rented banner for visitors */}
+            {!isOwner && listing.status === "rented" && (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-center">
+                <Badge className="bg-red-600 text-white text-sm font-bold px-4 py-1.5 mb-2">Rented</Badge>
+                <p className="text-sm text-muted-foreground">This listing has been rented and is no longer available.</p>
+              </div>
+            )}
+
             {/* Info Card */}
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-sm text-blue-900">
               <p className="font-semibold mb-1">Safe to message</p>
@@ -801,6 +843,9 @@ export default function ListingDetail() {
           </div>
         </div>
       </div>
+
+      {/* More from this host */}
+      <MoreFromHost listing={listing} hostProfile={hostProfile} />
 
       {/* Mobile CTA */}
       <MobileListingCTA
@@ -916,6 +961,58 @@ id="select-field"                 value={reportReason}
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── More from this host ──────────────────────────────────────────────────────
+function MoreFromHost({ listing, hostProfile }) {
+  const { data: hostListings = [] } = useQuery({
+    queryKey: ["host-listings", listing?.owner_user_id],
+    queryFn: async () => {
+      const results = await entities.Listing.filter({ owner_user_id: listing.owner_user_id, status: "active" });
+      // Exclude current listing
+      return (results || []).filter(l => l.id !== listing.id).slice(0, 4);
+    },
+    enabled: !!listing?.owner_user_id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (hostListings.length === 0) return null;
+
+  const hostName = hostProfile?.display_name || hostProfile?.full_name || "This Host";
+
+  return (
+    <div className="mt-8 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold text-foreground">More from {hostName}</h2>
+        <Link
+          to={`/search?host=${listing.owner_user_id}`}
+          className="text-sm text-accent hover:underline font-medium"
+        >
+          View all {hostListings.length + 1} listings →
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {hostListings.map((l) => (
+          <Link key={l.id} to={`/listing/${l.slug || l.id}`} className="group">
+            <div className="rounded-xl border border-border bg-card overflow-hidden hover:shadow-md transition-all hover:border-accent/30">
+              <div className="aspect-video bg-muted overflow-hidden">
+                {l.cover_photo_url ? (
+                  <img src={l.cover_photo_url} alt={l.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No image</div>
+                )}
+              </div>
+              <div className="p-3 space-y-1">
+                <p className="font-bold text-accent text-sm">${l.rent_amount || l.monthly_rent}/{l.rent_period === "daily" ? "day" : "mo"}</p>
+                <p className="text-xs font-medium text-foreground line-clamp-1">{l.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1">{l.city}{l.province_or_state ? `, ${l.province_or_state}` : ''}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
