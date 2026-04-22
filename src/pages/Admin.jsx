@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Shield, Users, Home, Flag, Check, Pause, Trash2, Play, Zap, 
   DollarSign, BadgeCheck, CreditCard, Percent, FileText, BarChart2, 
-  MessageSquare, Eye, Star, AlertTriangle, ClipboardList
+  MessageSquare, Eye, Star, AlertTriangle, ClipboardList, Mail
 } from "lucide-react";
 import BoostSettingsPanel from "@/components/admin/BoostSettingsPanel";
 import ListingEditModal from "@/components/admin/ListingEditModal";
