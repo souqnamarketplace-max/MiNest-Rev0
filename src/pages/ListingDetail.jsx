@@ -114,9 +114,7 @@ export default function ListingDetail() {
     (async () => {
       try {
         const { fetchAndSaveWalkScore } = await import("@/lib/walkScore");
-        const { supabase } = await import("@/lib/supabase");
-        await fetchAndSaveWalkScore(listing, supabase);
-        // Silently refresh listing data
+        await fetchAndSaveWalkScore(listing);
         queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
       } catch {}
     })();
