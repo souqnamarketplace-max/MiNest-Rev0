@@ -25,11 +25,17 @@ export async function createNotification({ user_id, type, title, body, data = {}
 
 async function getAdminUserIds() {
   try {
-    const { data } = await supabase
+    // Use RPC function with SECURITY DEFINER to bypass RLS
+    // This lets any authenticated user discover admin IDs for notification routing
+    const { data, error } = await supabase.rpc('get_admin_user_ids');
+    if (!error && data) return data;
+    
+    // Fallback: try direct query (works if current user is admin)
+    const { data: fallback } = await supabase
       .from('user_profiles')
       .select('user_id')
       .eq('is_admin', true);
-    return (data || []).map(d => d.user_id);
+    return (fallback || []).map(d => d.user_id);
   } catch {
     return [];
   }
