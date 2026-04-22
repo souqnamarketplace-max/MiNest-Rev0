@@ -48,7 +48,12 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
     setShowGrid(false);
   }, []);
 
-  const zoomIn = () => setZoom(z => Math.min(z + 0.5, 5));
+  const zoomIn = () => {
+    setZoom(z => {
+      const next = Math.min(z + 0.5, 5);
+      return next;
+    });
+  };
   const zoomOut = () => {
     setZoom(z => {
       const next = Math.max(z - 0.5, 1);
@@ -185,10 +190,10 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
                 <Grid3x3 className="w-4 h-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-9 h-9" onClick={resetView}>
+            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-9 h-9" onClick={(e) => { e.stopPropagation(); resetView(); }}>
               <Maximize2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-9 h-9" onClick={() => onOpenChange(false)}>
+            <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-9 h-9" onClick={(e) => { e.stopPropagation(); onOpenChange(false); }}>
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -233,21 +238,25 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
           style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in", touchAction: "none" }}
         >
           <AnimatePresence mode="wait">
-            <motion.img
+            <motion.div
               key={currentIndex}
-              src={photos[currentIndex]}
-              alt={`Photo ${currentIndex + 1} of ${photos.length}`}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="select-none max-h-[85vh] max-w-[95vw] sm:max-w-[90vw] object-contain"
-              style={{
-                transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-                transition: isDragging ? "none" : "transform 0.2s ease-out",
-              }}
-              draggable={false}
-            />
+              className="flex items-center justify-center w-full h-full"
+            >
+              <img
+                src={photos[currentIndex]}
+                alt={`Photo ${currentIndex + 1} of ${photos.length}`}
+                className="select-none max-h-[85vh] max-w-[95vw] sm:max-w-[90vw] object-contain"
+                style={{
+                  transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                  transition: isDragging ? "none" : "transform 0.2s ease-out",
+                }}
+                draggable={false}
+              />
+            </motion.div>
           </AnimatePresence>
 
           {/* Navigation arrows — only when not zoomed */}
@@ -293,13 +302,21 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
           {/* Zoom controls */}
           <div className="flex items-center justify-center gap-3 px-4 py-3">
             <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-full px-1">
-              <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8" onClick={zoomOut} disabled={zoom <= 1}>
-                <ZoomOut className="w-3.5 h-3.5" />
-              </Button>
+              <button
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-9 h-9 flex items-center justify-center disabled:opacity-30"
+                onClick={(e) => { e.stopPropagation(); zoomOut(); }}
+                disabled={zoom <= 1}
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
               <span className="text-white/70 text-xs font-medium min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
-              <Button variant="ghost" size="icon" className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-8 h-8" onClick={zoomIn} disabled={zoom >= 5}>
-                <ZoomIn className="w-3.5 h-3.5" />
-              </Button>
+              <button
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded-full w-9 h-9 flex items-center justify-center disabled:opacity-30"
+                onClick={(e) => { e.stopPropagation(); zoomIn(); }}
+                disabled={zoom >= 5}
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
             </div>
             <span className="text-white/40 text-[10px] hidden sm:block">Double-click to zoom • Scroll to zoom • Drag to pan</span>
           </div>
