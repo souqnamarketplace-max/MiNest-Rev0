@@ -36,6 +36,30 @@ function applySort(query, sort) {
   return query.order(raw, { ascending: !desc });
 }
 
+// Add backward-compatible aliases so code that reads old field names still works
+// This avoids breaking ~20 files that read created_date, text, etc.
+function addAliases(row) {
+  if (!row || typeof row !== 'object') return row;
+  // Date aliases: created_at ↔ created_date, updated_at ↔ updated_date
+  if (row.created_at && !row.created_date) row.created_date = row.created_at;
+  if (row.updated_at && !row.updated_date) row.updated_date = row.updated_at;
+  // Messages: content ↔ text
+  if (row.content !== undefined && row.text === undefined) row.text = row.content;
+  // Messages: sender_user_id ↔ sender_id
+  if (row.sender_user_id && !row.sender_id) row.sender_id = row.sender_user_id;
+  // Messages: is_read ↔ read (for messages table only, notifications already has 'read')
+  if (row.is_read !== undefined && row.read === undefined) row.read = row.is_read;
+  // Bookings: checkin_date ↔ check_in, checkout_date ↔ check_out
+  if (row.checkin_date && !row.check_in) row.check_in = row.checkin_date;
+  if (row.checkout_date && !row.check_out) row.check_out = row.checkout_date;
+  return row;
+}
+
+function aliasRows(data) {
+  if (Array.isArray(data)) return data.map(addAliases);
+  return addAliases(data);
+}
+
 function makeEntity(table) {
   return {
     filter: async (filters = {}, sort = '-created_at', limit = 100) => {
@@ -45,7 +69,7 @@ function makeEntity(table) {
       if (limit) query = query.limit(limit);
       const { data, error } = await query;
       if (error) throw error;
-      return data ?? [];
+      return aliasRows(data ?? []);
     },
     list: async (sort = '-created_at', limit = 100) => {
       let query = supabase.from(table).select('*');
@@ -53,22 +77,22 @@ function makeEntity(table) {
       if (limit) query = query.limit(limit);
       const { data, error } = await query;
       if (error) throw error;
-      return data ?? [];
+      return aliasRows(data ?? []);
     },
     get: async (id) => {
       const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
       if (error) throw error;
-      return data;
+      return addAliases(data);
     },
     create: async (payload) => {
       const { data, error } = await supabase.from(table).insert(payload).select().single();
       if (error) throw error;
-      return data;
+      return addAliases(data);
     },
     update: async (id, payload) => {
       const { data, error } = await supabase.from(table).update(payload).eq('id', id).select().single();
       if (error) throw error;
-      return data;
+      return addAliases(data);
     },
     delete: async (id) => {
       const { error } = await supabase.from(table).delete().eq('id', id);
