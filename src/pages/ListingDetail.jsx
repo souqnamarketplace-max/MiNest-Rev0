@@ -90,12 +90,13 @@ export default function ListingDetail() {
   useEffect(() => {
     if (!listing) return;
     const price = listing.rent_amount || listing.monthly_rent || 0;
-    // rent_amount is stored in dollars (not cents), so no division needed
-    const priceDisplay = price > 0 ? `$${Math.round(price).toLocaleString()}` : "";
+    const period = listing.rent_period || "monthly";
+    const periodSuffix = period === "daily" ? "/day" : period === "weekly" ? "/wk" : "/mo";
+    const priceDisplay = price > 0 ? `$${Math.round(price).toLocaleString()}${periodSuffix}` : "";
     const loc = [listing.neighborhood, listing.city, listing.province_or_state].filter(Boolean).join(", ");
     const ogImg = listing.cover_photo_url || listing.photos?.[0] || "";
     setPageMeta({
-      title: `${listing.title}${priceDisplay ? ` — ${priceDisplay}/mo` : ""} | Room for Rent in ${loc} | MiNest`,
+      title: `${listing.title}${priceDisplay ? ` — ${priceDisplay}` : ""} | Room for Rent in ${loc} | MiNest`,
       description: `Room for rent in ${loc}. ${listing.description ? listing.description.slice(0, 140).trimEnd() + "..." : "Browse verified rooms and shared housing on MiNest."}`,
       canonical: `/listing/${listing.slug || listing.id}`,
       ogImage: ogImg,
