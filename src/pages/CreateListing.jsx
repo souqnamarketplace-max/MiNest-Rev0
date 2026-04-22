@@ -25,6 +25,7 @@ import ParkingSection from "@/components/listings/ParkingSection";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { prepareParkingDataForSubmit } from "@/lib/parkingValidation";
 import { useProfileCheck, ProfileIncompleteWarning } from "@/components/ProfileGate";
+import { notifyListingCreated } from "@/lib/notificationService";
 
 const STEPS = ["Basics", "Location", "Pricing", "Details", "Preferences", "Viewings", "Photos", "Review"];
 
@@ -296,10 +297,14 @@ export default function CreateListing() {
     const finalData = { ...data, status: finalStatus, expires_at: expiresAt };
 
     try {
-      await entities.Listing.create(finalData);
+      const created = await entities.Listing.create(finalData);
       if (finalStatus === "draft") toast.success("Draft saved!");
       else if (finalStatus === "pending_review") toast.success("Listing submitted for review!", { duration: 5000 });
       else toast.success("Listing published successfully!");
+      // Notify admin about new listing
+      if (finalStatus !== "draft") {
+        notifyListingCreated({ listingTitle: form.title, listingId: created?.id, ownerName: user?.user_metadata?.full_name });
+      }
       navigate("/dashboard");
     } catch (err) {
       console.error("Publish error:", err);

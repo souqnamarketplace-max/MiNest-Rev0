@@ -10,6 +10,7 @@ import { Calendar, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BookingCard from "./BookingCard";
 import { toast } from "sonner";
+import { notifyBookingConfirmed, notifyBookingDeclined } from "@/lib/notificationService";
 
 export default function BookingRequestsList() {
   const { user } = useAuth();
@@ -55,6 +56,12 @@ export default function BookingRequestsList() {
       await entities.Booking.update(booking.id, updateData);
 
       toast.success(action === "confirmed" ? "Booking confirmed!" : "Booking declined.");
+      // Notify the guest
+      if (action === "confirmed") {
+        notifyBookingConfirmed({ guestId: booking.guest_user_id, listingTitle: booking.listing_title, checkIn: booking.check_in });
+      } else {
+        notifyBookingDeclined({ guestId: booking.guest_user_id, listingTitle: booking.listing_title });
+      }
       queryClient.invalidateQueries({ queryKey: ["host-bookings"] });
       setRespondingTo(null);
       setHostResponse("");

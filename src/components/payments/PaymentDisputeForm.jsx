@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { entities } from '@/api/entities';
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { notifyDisputeOpened } from "@/lib/notificationService";
 
 const DISPUTE_TYPES = [
   { value: "payment_not_received", label: "Payment not received" },
@@ -40,6 +41,8 @@ export default function PaymentDisputeForm({ subscription, onSuccess }) {
     });
     setLoading(false);
     toast.success("Dispute submitted. Our team will review it within 2 business days.");
+    // Notify admin about the dispute
+    notifyDisputeOpened({ disputeId: null, userName: null, amount: null });
     setDisputeType("");
     setDescription("");
     onSuccess?.();

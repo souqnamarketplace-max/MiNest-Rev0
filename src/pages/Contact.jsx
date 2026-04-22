@@ -7,6 +7,7 @@ import { Mail, CheckCircle2, MessageSquare, Paperclip, Send, X } from "lucide-re
 import { toast } from "sonner";
 import { entities, uploadFile } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
+import { notifyContactSubmitted } from "@/lib/notificationService";
 
 const statusColors = {
   open: "bg-yellow-50 border-yellow-200 text-yellow-700",
@@ -48,6 +49,8 @@ export default function Contact() {
     setSending(false);
     setSubmitted(saved);
     setPastMessages(prev => [saved, ...prev]);
+    // Notify admin about new support request
+    notifyContactSubmitted({ senderName: form.name, subject: form.subject || form.message?.slice(0, 50) });
   };
 
   if (submitted && !activeThread) {

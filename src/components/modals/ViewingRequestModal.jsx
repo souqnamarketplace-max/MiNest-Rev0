@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { entities, invokeFunction } from '@/api/entities';
+import { notifyViewingRequested } from "@/lib/notificationService";
 import { useAuth } from "@/lib/AuthContext";
 import { Calendar, Clock, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -74,7 +75,6 @@ export default function ViewingRequestModal({ open, onOpenChange, listing, exist
         // Update existing appointment
         await entities.ViewingAppointment.update(existingAppointment.id, {
           requested_start_at: requestedStart.toISOString(),
-          requested_end_at: requestedEnd.toISOString(),
           viewer_message: form.message || "",
           status: "requested",
         });
@@ -87,12 +87,19 @@ export default function ViewingRequestModal({ open, onOpenChange, listing, exist
           viewer_user_id: user.id,
           status: "requested",
           requested_start_at: requestedStart.toISOString(),
-          requested_end_at: requestedEnd.toISOString(),
           timezone: "UTC",
           viewer_message: form.message || "",
           source_type: "listing_detail",
         });
         toast.success("Viewing request sent!");
+        // Notify the listing owner
+        notifyViewingRequested({
+          ownerId: listing.owner_user_id,
+          viewerName: user?.user_metadata?.full_name,
+          listingTitle: listing.title,
+          listingSlug: listing.slug || listing.id,
+          date: form.date,
+        });
       }
 
       setSubmitted(true);

@@ -23,6 +23,7 @@ import SupportRequestsPanel from "@/components/admin/SupportRequestsPanel";
 import { toast } from "sonner";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { notifyListingApproved, notifyListingRejected } from "@/lib/notificationService";
 
 export default function Admin() {
   const { user } = useAuth();
@@ -191,8 +192,17 @@ function ListingsTab({ onEdit }) {
   });
 
   const handleStatus = async (id, status) => {
+    const listing = listings.find(l => l.id === id);
     await entities.Listing.update(id, { status });
     toast.success(`Listing ${status}`);
+    // Notify the listing owner
+    if (listing?.owner_user_id) {
+      if (status === "active") {
+        notifyListingApproved({ ownerId: listing.owner_user_id, listingTitle: listing.title, listingSlug: listing.slug || listing.id });
+      } else if (status === "rejected") {
+        notifyListingRejected({ ownerId: listing.owner_user_id, listingTitle: listing.title });
+      }
+    }
     refetch();
   };
 

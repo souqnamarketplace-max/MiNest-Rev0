@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { entities } from '@/api/entities';
+import { notifyViewingConfirmed, notifyViewingDeclined } from "@/lib/notificationService";
 import { getAvatarFallback, formatDate } from "@/lib/geoHelpers";
 import { format } from "date-fns";
 import { CheckCircle2, XCircle, Clock, MessageSquare, Home } from "lucide-react";
@@ -36,6 +37,7 @@ export default function ViewingRequestCard({ appointment, viewerProfile, listing
         approved_at: new Date().toISOString(),
       });
       toast.success("Viewing approved!");
+      notifyViewingConfirmed({ viewerId: appointment.viewer_user_id, listingTitle: listing?.title, date: requestedStart.toLocaleDateString() });
       onStatusChange?.();
     } catch (err) {
       toast.error("Failed to approve viewing");
@@ -53,6 +55,7 @@ export default function ViewingRequestCard({ appointment, viewerProfile, listing
         owner_response_message: declineReason || "",
       });
       toast.success("Viewing declined");
+      notifyViewingDeclined({ viewerId: appointment.viewer_user_id, listingTitle: listing?.title, reason: declineReason });
       setShowDeclineInput(false);
       onStatusChange?.();
     } catch (err) {

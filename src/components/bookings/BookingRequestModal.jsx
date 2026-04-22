@@ -8,6 +8,7 @@ import { Calendar, Loader2, AlertCircle } from "lucide-react";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
+import { notifyBookingRequested } from "@/lib/notificationService";
 import {
   checkAvailability,
   validateBookingDates,
@@ -89,6 +90,13 @@ export default function BookingRequestModal({ open, onOpenChange, listing, onSuc
       });
 
       toast.success("Booking request sent! The host will review and respond.");
+      notifyBookingRequested({
+        ownerId: listing.owner_user_id,
+        guestName: user?.user_metadata?.full_name,
+        listingTitle: listing.title,
+        checkIn: form.check_in,
+        checkOut: form.check_out,
+      });
       onOpenChange(false);
       onSuccess?.();
 

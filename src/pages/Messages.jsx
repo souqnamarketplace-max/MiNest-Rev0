@@ -13,6 +13,7 @@ import ConversationHeader from "@/components/messages/ConversationHeader";
 import MessageThread from "@/components/messages/MessageThread";
 import MessageComposer from "@/components/messages/MessageComposer";
 import { enrichConversations } from "@/lib/conversationHelpers";
+import { notifyNewMessage, notifyReportFiled } from "@/lib/notificationService";
 import { supabase } from "@/lib/supabase";
 import { useProfileCheck, ProfileIncompleteWarning } from "@/components/ProfileGate";
 
@@ -117,6 +118,12 @@ export default function Messages() {
 
       queryClient.invalidateQueries({ queryKey: ["messages", selectedId] });
       refetchConvos();
+      // Notify the recipient of the new message
+      const convo = conversations.find(c => c.id === selectedId);
+      const recipientId = convo?.participant_ids?.find(id => id !== user.id) || convo?.other_user_id;
+      if (recipientId) {
+        notifyNewMessage({ recipientId, senderName: displayName, messagePreview: messageText, conversationId: selectedId });
+      }
     } catch (err) {
       console.error("Failed to send message:", err);
       toast.error("Failed to send message");
@@ -146,6 +153,7 @@ export default function Messages() {
         status: "pending"
       });
       toast.success("Report submitted. Thank you for helping us keep the community safe.");
+      notifyReportFiled({ reporterName: user?.user_metadata?.full_name, targetType: 'user', reason: reportReason });
       setReportOpen(false);
       setReportReason("");
       setReportDetails("");
