@@ -90,7 +90,7 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
           </SelectContent>
         </Select>
         {regions.length > 0 && (
-          <Select value={currentFilters.province_or_state} onValueChange={(v) => updateFilter("province_or_state", v)}>
+          <Select value={currentFilters.province_or_state || ""} onValueChange={(v) => updateFilter("province_or_state", v)}>
             <SelectTrigger><SelectValue placeholder="Province / State" /></SelectTrigger>
             <SelectContent>{regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
           </Select>
@@ -102,11 +102,11 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
       {/* Type */}
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-foreground">Room Type</h4>
-        <Select value={currentFilters.listing_type} onValueChange={(v) => updateFilter("listing_type", v)}>
+        <Select value={currentFilters.listing_type || ""} onValueChange={(v) => updateFilter("listing_type", v)}>
           <SelectTrigger><SelectValue placeholder="Any type" /></SelectTrigger>
           <SelectContent>{LISTING_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
         </Select>
-        <Select value={currentFilters.property_type} onValueChange={(v) => updateFilter("property_type", v)}>
+        <Select value={currentFilters.property_type || ""} onValueChange={(v) => updateFilter("property_type", v)}>
           <SelectTrigger><SelectValue placeholder="Property type" /></SelectTrigger>
           <SelectContent>{PROPERTY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
         </Select>
@@ -115,7 +115,7 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
       {/* Rent Period */}
       <div className="space-y-3">
         <h4 className="text-sm font-semibold text-foreground">Rent Period</h4>
-        <Select value={currentFilters.rent_period} onValueChange={(v) => updateFilter("rent_period", v)}>
+        <Select value={currentFilters.rent_period || ""} onValueChange={(v) => updateFilter("rent_period", v)}>
           <SelectTrigger><SelectValue placeholder="Any period" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="monthly">Monthly</SelectItem>
@@ -147,7 +147,7 @@ function SearchFiltersComponent({ filters, onFiltersChange }) {
                 onChange={(e) => updateFilter("checkout_date", e.target.value)} />
             </div>
           </div>
-          <Select value={currentFilters.booking_mode} onValueChange={(v) => updateFilter("booking_mode", v)}>
+          <Select value={currentFilters.booking_mode || ""} onValueChange={(v) => updateFilter("booking_mode", v)}>
             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Any booking type" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="inquiry">Inquiry only</SelectItem>

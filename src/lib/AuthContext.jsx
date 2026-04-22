@@ -60,7 +60,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async (redirectTo = '/') => {
     await supabase.auth.signOut();
     setUser(null);
-    window.location.href = redirectTo;
+    // Prevent open redirect — only allow relative paths
+    const safeRedirect = (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) ? redirectTo : '/';
+    window.location.href = safeRedirect;
   };
 
   const navigateToLogin = (returnUrl) => {
