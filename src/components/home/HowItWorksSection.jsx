@@ -6,7 +6,7 @@ const steps = [
   { icon: UserPlus, title: "Create Your Profile", desc: "Sign up, choose your intent (seeker, lister, or both), and complete your lifestyle profile." },
   { icon: Search, title: "Save Your Search", desc: "Create saved searches with your preferences. Get instant or daily alerts for new matches." },
   { icon: Bell, title: "Get Notified Instantly", desc: "Receive real-time notifications when listings or roommates match your criteria." },
-  { icon: MessageSquare, title: "Connect & Agree", desc: "Message matches securely. Use our free roommate agreement generator to formalize terms." },
+  { icon: MessageSquare, title: "Connect & Agree", desc: "Message matches securely. Discuss terms, schedule viewings, and agree on details before moving in." },
   { icon: KeyRound, title: "Move In", desc: "Pay rent securely in-app and start your new chapter with confidence." },
 ];
 

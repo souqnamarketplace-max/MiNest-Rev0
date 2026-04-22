@@ -755,17 +755,6 @@ export default function ListingDetail() {
               <RentPaymentCTA listing={listing} />
             )}
 
-            {/* Agreement Tool */}
-            <div className="bg-muted/50 rounded-2xl border border-border p-4 text-center">
-              <FileText className="w-6 h-6 mx-auto text-accent mb-2" />
-              <h4 className="font-semibold text-sm mb-1">Roommate Agreement</h4>
-              <p className="text-xs text-muted-foreground mb-3">Get a free template when you're ready to move in.</p>
-              <Link to="/roommate-agreement">
-                <Button variant="outline" size="sm" className="w-full text-xs">
-                  View Template
-                </Button>
-              </Link>
-            </div>
           </div>
         </div>
       </div>

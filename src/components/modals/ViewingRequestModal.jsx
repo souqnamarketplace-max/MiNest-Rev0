@@ -181,10 +181,13 @@ export default function ViewingRequestModal({ open, onOpenChange, listing, exist
                       </SelectTrigger>
                       <SelectContent className="max-h-48">
                         {availableSlots.map((slot, idx) => {
-                          const startTime = new Date(slot.start);
-                          const endTime = new Date(slot.end);
-                          const timeStr = startTime.toTimeString().slice(0, 5);
-                          const endTimeStr = endTime.toTimeString().slice(0, 5);
+                          const timeStr = slot.time;
+                          // Calculate end time (30min later)
+                          const [h, m] = timeStr.split(":").map(Number);
+                          const endMin = m + 30;
+                          const endH = h + Math.floor(endMin / 60);
+                          const endM = endMin % 60;
+                          const endTimeStr = `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`;
                           return (
                             <SelectItem key={idx} value={timeStr}>
                               {timeStr} - {endTimeStr}

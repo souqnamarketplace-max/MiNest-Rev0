@@ -7,7 +7,7 @@ const tips = [
   { icon: Lock, title: "Protect Personal Info", desc: "Don't share your phone number, address, or financial information until you've built trust through our messaging system." },
   { icon: AlertTriangle, title: "Trust Your Instincts", desc: "If something feels off about a listing or person, report it. It's better to be cautious." },
   { icon: MessageSquare, title: "Use In-App Messaging", desc: "Keep all communication within MiNest so we can help if disputes arise." },
-  { icon: FileText, title: "Use a Roommate Agreement", desc: "Use our free roommate agreement tool to set clear expectations before moving in." },
+  { icon: FileText, title: "Set Clear Expectations", desc: "Discuss responsibilities, rent splitting, and house rules with your roommate before moving in." },
 ];
 
 export default function Safety() {

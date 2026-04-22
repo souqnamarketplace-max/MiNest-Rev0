@@ -36,7 +36,6 @@ import AdminEmailTest from '@/pages/AdminEmailTest';
 import CityListings from '@/pages/CityListings';
 import SeekerOnboarding from '@/pages/SeekerOnboarding';
 import SavedSearches from '@/pages/SavedSearches.jsx';
-import RoommateAgreementGenerator from '@/pages/RoommateAgreementGenerator';
 import NotificationPreferences from '@/pages/NotificationPreferences.jsx';
 import Notifications from '@/pages/Notifications';
 import MyViewings from '@/pages/MyViewings';
@@ -89,7 +88,6 @@ function AnimatedRoutes() {
             <Route path="/city" element={<CityListings />} />
             <Route path="/rooms-for-rent/:citySlug" element={<CityRoomsPage />} />
             <Route path="/rooms-for-rent-:citySlug" element={<CityRoomsPage />} />
-            <Route path="/roommate-agreement" element={<RoommateAgreementGenerator />} />
             <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
