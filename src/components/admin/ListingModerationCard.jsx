@@ -3,15 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  AlertCircle, Eye, EyeOff, Trash2, Star, CheckCircle2, XCircle, AlertTriangle,
+  Eye, EyeOff, Trash2, Star, CheckCircle2, XCircle, AlertTriangle,
   ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
-import { invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
+import { notifyListingApproved, notifyListingRejected } from "@/lib/notificationService";
 
 export default function ListingModerationCard({ listing, onActionComplete }) {
   const [expanded, setExpanded] = useState(false);
   const [reason, setReason] = useState("");
   const [acting, setActing] = useState(false);
+
+  // Map action names to status updates
+  const ACTION_MAP = {
+    approve: { status: "active", moderation_status: "approved" },
+    reject: { status: "rejected", moderation_status: "rejected" },
+    pause: { status: "paused" },
+    resume: { status: "active" },
+    remove: { status: "removed", moderation_status: "removed" },
+    feature: { is_featured: true, featured_rank: 1 },
+  };
 
   const handleAction = async (action) => {
     if (!reason.trim() && ['reject', 'remove'].includes(action)) {
@@ -21,20 +32,43 @@ export default function ListingModerationCard({ listing, onActionComplete }) {
 
     setActing(true);
     try {
-      const response = await invokeFunction('listings/moderate', {
-        listing_id: listing.id,
-        action,
-        reason
-      });
-
-      if (response.success) {
-        toast.success(`Listing ${action}d`);
-        setReason("");
-        setExpanded(false);
-        onActionComplete?.();
+      const updates = { ...ACTION_MAP[action] };
+      if (reason.trim()) {
+        updates.moderation_notes = reason;
       }
+
+      await entities.Listing.update(listing.id, updates);
+
+      // Send notifications to the listing owner
+      if (action === 'approve') {
+        notifyListingApproved({
+          ownerId: listing.owner_user_id,
+          listingTitle: listing.title,
+          listingSlug: listing.slug || listing.id
+        });
+      } else if (action === 'reject') {
+        notifyListingRejected({
+          ownerId: listing.owner_user_id,
+          listingTitle: listing.title
+        });
+      }
+
+      const labels = {
+        approve: "Listing approved",
+        reject: "Listing rejected",
+        pause: "Listing paused",
+        resume: "Listing resumed",
+        remove: "Listing removed",
+        feature: "Listing featured",
+      };
+
+      toast.success(labels[action] || `Listing ${action}d`);
+      setReason("");
+      setExpanded(false);
+      onActionComplete?.();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Action failed");
+      console.error("Moderation action failed:", err);
+      toast.error(err?.message || "Action failed");
     } finally {
       setActing(false);
     }
@@ -67,7 +101,7 @@ export default function ListingModerationCard({ listing, onActionComplete }) {
               {listing.city}, {listing.province_or_state} • ${listing.rent_amount || listing.monthly_rent}/mo
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              By {listing.owner_user_id}
+              Owner: {listing.owner_display_name || listing.owner_user_id?.slice(0, 8)}
             </p>
           </div>
           <div className="flex-shrink-0">
