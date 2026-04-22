@@ -3,7 +3,7 @@ import { listingUrl } from '@/lib/listingHelpers';
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, MapPin, Wifi, Car, Sparkles, ShieldCheck, Bed, Bath, CreditCard, Mail, TrendingDown, Footprints, Train, Bike } from "lucide-react";
+import { Heart, MapPin, Wifi, Car, Sparkles, ShieldCheck, Bed, Bath, CreditCard, Mail, TrendingDown, Train } from "lucide-react";
 import { formatRentPrice, formatEquivalentMonthly, getCurrencyByCountry } from "@/lib/pricingHelpers";
 import { getParkingCardDisplay } from "@/lib/parkingHelpers";
 import ShareButton from "@/components/common/ShareButton.jsx";
@@ -12,12 +12,6 @@ import TenantRentalRequestModal from "@/components/payments/TenantRentalRequestM
 import { useAuth } from "@/lib/AuthContext";
 import SignInRequiredModal from "@/components/modals/SignInRequiredModal";
 import { useCountry } from "@/lib/CountryContext";
-
-function getScoreDot(score) {
-  if (score >= 70) return "bg-emerald-500";
-  if (score >= 50) return "bg-yellow-500";
-  return "bg-orange-500";
-}
 
 export default function ListingCard({ listing, isFavorited, onToggleFavorite }) {
   const { user } = useAuth();
@@ -42,9 +36,6 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
 
   // Rented status
   const isRented = listing.status === "rented";
-
-  // Walk scores
-  const hasWalkScore = listing.walk_score != null;
 
   const handleOpenRequest = (e) => {
     e.preventDefault();
@@ -179,30 +170,14 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
             )}
           </div>
 
-          {/* Walk / Transit / Bike Scores */}
-          {hasWalkScore && (
-            <div className="flex gap-3 text-xs text-muted-foreground">
-              {listing.walk_score != null && (
-                <div className="flex items-center gap-1" title={`Walk Score: ${listing.walk_score}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${getScoreDot(listing.walk_score)}`} />
-                  <Footprints className="w-3 h-3" />
-                  <span className="font-medium">{listing.walk_score}</span>
-                </div>
-              )}
-              {listing.transit_score != null && (
-                <div className="flex items-center gap-1" title={`Transit Score: ${listing.transit_score}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${getScoreDot(listing.transit_score)}`} />
-                  <Train className="w-3 h-3" />
-                  <span className="font-medium">{listing.transit_score}</span>
-                </div>
-              )}
-              {listing.bike_score != null && (
-                <div className="flex items-center gap-1" title={`Bike Score: ${listing.bike_score}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${getScoreDot(listing.bike_score)}`} />
-                  <Bike className="w-3 h-3" />
-                  <span className="font-medium">{listing.bike_score}</span>
-                </div>
-              )}
+          {/* Transit Score — FB Marketplace style */}
+          {listing.transit_score != null && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Train className="w-3.5 h-3.5" />
+              <span className="font-medium">{listing.transit_score}</span>
+              <span className="text-muted-foreground/70">
+                {listing.transit_score >= 70 ? "Excellent Transit" : listing.transit_score >= 50 ? "Good Transit" : listing.transit_score >= 25 ? "Some Transit" : "Minimal Transit"}
+              </span>
             </div>
           )}
 

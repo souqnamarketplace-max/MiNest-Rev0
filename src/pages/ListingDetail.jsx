@@ -108,6 +108,20 @@ export default function ListingDetail() {
     };
   }, [listing]);
 
+  // Auto-fetch Walk Score if not yet populated
+  useEffect(() => {
+    if (!listing || listing.walk_score != null || !listing.latitude || !listing.longitude) return;
+    (async () => {
+      try {
+        const { fetchAndSaveWalkScore } = await import("@/lib/walkScore");
+        const { supabase } = await import("@/lib/supabase");
+        await fetchAndSaveWalkScore(listing, supabase);
+        // Silently refresh listing data
+        queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
+      } catch {}
+    })();
+  }, [listing?.id]);
+
   const { data: hostProfile } = useQuery({
     queryKey: ["hostProfile", listing?.owner_user_id],
     queryFn: async () => {
@@ -540,6 +554,40 @@ export default function ListingDetail() {
               </div>
             </div>
 
+
+          {/* Walk / Transit / Bike Scores */}
+          {(listing.walk_score != null || listing.transit_score != null || listing.bike_score != null) && (
+            <div className="bg-card rounded-xl border border-border p-4">
+              <h3 className="font-semibold text-foreground mb-3">Transportation Scores</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {listing.walk_score != null && (
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${listing.walk_score >= 70 ? "text-emerald-600" : listing.walk_score >= 50 ? "text-yellow-600" : "text-orange-500"}`}>
+                      {listing.walk_score}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Walk Score</div>
+                  </div>
+                )}
+                {listing.transit_score != null && (
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${listing.transit_score >= 70 ? "text-emerald-600" : listing.transit_score >= 50 ? "text-yellow-600" : "text-orange-500"}`}>
+                      {listing.transit_score}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Transit Score</div>
+                  </div>
+                )}
+                {listing.bike_score != null && (
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${listing.bike_score >= 70 ? "text-emerald-600" : listing.bike_score >= 50 ? "text-yellow-600" : "text-orange-500"}`}>
+                      {listing.bike_score}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Bike Score</div>
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Scores provided by Walk Score®</p>
+            </div>
+          )}
 
           {/* Property Details */}
           {(listing.total_bedrooms || listing.current_roommates !== null || listing.room_size_sqft || listing.laundry || listing.kitchen_access || listing.floor_level || listing.ac_heating) && (
