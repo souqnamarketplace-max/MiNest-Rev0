@@ -324,11 +324,19 @@ export default function SearchRooms() {
 
   const handleRemoveFilter = (key) => {
     setFilters(prev => ({ ...prev, [key]: "" }));
+    if (key === "city") {
+      localStorage.removeItem('minest-last-city');
+      setCityInput("");
+    }
+    if (key === "province_or_state") localStorage.removeItem('minest-last-province');
   };
 
   const handleClearAllFilters = () => {
     setCityInput("");
     setFilters({ city: "", country: "", sort: "-created_at" });
+    localStorage.removeItem('minest-last-city');
+    localStorage.removeItem('minest-last-province');
+    setLocationDetected(false);
   };
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
