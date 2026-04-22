@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { Loader2, DollarSign, Info } from "lucide-react";
 import { toast } from "sonner";
 import { formatCents } from "@/lib/paymentHelpers";
@@ -20,7 +20,6 @@ export default function PaymentPlanSetup({ listing, existingPlan, onSuccess }) {
   const handlePreview = () => {
     const amountNum = parseFloat(amount);
     if (!amountNum) return;
-    // Preview will be confirmed server-side; show estimate
     setPreviewFee({ amount: amountNum * 100, commission: "~1%" });
   };
 
@@ -31,29 +30,32 @@ export default function PaymentPlanSetup({ listing, existingPlan, onSuccess }) {
       return;
     }
     setLoading(true);
-    const functionName = existingPlan ? "updatePaymentPlan" : "createPaymentPlan";
-    const res = await invokeFunction(functionName, {
-      listing_id: listing.id,
-      amount: amountNum,
-      currency: listing.currency_code?.toLowerCase() || "cad",
-      interval: interval === "monthly" ? "month" : interval === "weekly" ? "week" : interval,
-      description,
-    });
-    setLoading(false);
-    if (res.data?.plan) {
+    try {
+      const planData = {
+        listing_id: listing.id,
+        amount: Math.round(amountNum * 100), // Store in cents
+        currency: listing.currency_code?.toLowerCase() || "cad",
+        interval: interval === "monthly" ? "month" : interval === "weekly" ? "week" : interval,
+        description,
+        status: "active",
+      };
+
+      let plan;
       if (existingPlan) {
-        const migrated = res.data.subscriptions_migrated || 0;
-        toast.success(
-          migrated > 0
-            ? `Payment plan updated! ${migrated} tenant${migrated > 1 ? "s" : ""} notified of the new amount.`
-            : "Payment plan updated successfully."
-        );
+        plan = await entities.PaymentPlan.update(existingPlan.id, planData);
+        toast.success("Payment plan updated successfully.");
       } else {
+        plan = await entities.PaymentPlan.create(planData);
+        // Enable payments on the listing
+        await entities.Listing.update(listing.id, { payments_enabled: true });
         toast.success("Payment plan created! Tenants can now pay rent through the app.");
       }
-      onSuccess?.(res.data);
-    } else {
-      toast.error(res.data?.error || "Failed to update payment plan");
+      onSuccess?.({ plan });
+    } catch (err) {
+      console.error("Payment plan error:", err);
+      toast.error(err?.message || "Failed to save payment plan. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
