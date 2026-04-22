@@ -266,17 +266,30 @@ function ListingPreview({ listing, currency, convertPrice, onClose }) {
   );
 }
 
-// Legend component
-function MapLegend() {
+// Legend component — clickable to filter by listing type
+function MapLegend({ activeTypes, onToggle }) {
   return (
     <div className="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm rounded-lg border border-border shadow-lg p-2.5 z-[500] text-xs">
       <div className="flex items-center gap-3">
-        {Object.entries(TYPE_COLORS).map(([type, config]) => (
-          <div key={type} className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ background: config.bg }} />
-            <span className="text-muted-foreground">{config.label}</span>
-          </div>
-        ))}
+        {Object.entries(TYPE_COLORS).map(([type, config]) => {
+          const isActive = activeTypes.has(type);
+          return (
+            <button
+              key={type}
+              onClick={() => onToggle(type)}
+              className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md transition-all cursor-pointer ${
+                isActive ? "opacity-100" : "opacity-30"
+              } hover:opacity-100`}
+              title={isActive ? `Hide ${config.label} rooms` : `Show ${config.label} rooms`}
+            >
+              <div
+                className="w-3 h-3 rounded-full transition-transform"
+                style={{ background: config.bg, transform: isActive ? "scale(1)" : "scale(0.7)" }}
+              />
+              <span className={isActive ? "text-foreground font-medium" : "text-muted-foreground"}>{config.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -290,6 +303,27 @@ export default function MapView({ listings, filters, onListingHover, activeListi
   const [hoveredId, setHoveredId] = useState(null);
   const [zoom, setZoom] = useState(5);
   const [mobilePreviewIndex, setMobilePreviewIndex] = useState(0);
+  const [activeTypes, setActiveTypes] = useState(new Set(["private_room", "shared_room", "entire_place"]));
+
+  const handleToggleType = (type) => {
+    setActiveTypes(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        // Don't allow deselecting all — keep at least one active
+        if (next.size <= 1) return prev;
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  // Filter resolved listings by active types
+  const filteredListings = useMemo(() =>
+    resolvedListings.filter(l => activeTypes.has(l.listing_type)),
+    [resolvedListings, activeTypes]
+  );
 
   // Resolve coordinates
   useEffect(() => {
@@ -315,17 +349,17 @@ export default function MapView({ listings, filters, onListingHover, activeListi
 
   // Cluster pins based on zoom
   const { markers, clusters } = useMemo(() =>
-    clusterListings(resolvedListings, zoom),
-    [resolvedListings, zoom]
+    clusterListings(filteredListings, zoom),
+    [filteredListings, zoom]
   );
 
   const center = useMemo(() => {
-    const valid = resolvedListings.filter(l => typeof l._lat === 'number' && isFinite(l._lat));
+    const valid = filteredListings.filter(l => typeof l._lat === 'number' && isFinite(l._lat));
     if (valid.length === 0) return [53.5, -113.5];
     const avgLat = valid.reduce((s, l) => s + l._lat, 0) / valid.length;
     const avgLng = valid.reduce((s, l) => s + l._lng, 0) / valid.length;
     return [avgLat, avgLng];
-  }, [resolvedListings]);
+  }, [filteredListings]);
 
   // Sync active listing from parent (for split view hover)
   useEffect(() => {
@@ -426,11 +460,11 @@ export default function MapView({ listings, filters, onListingHover, activeListi
       </MapContainer>
 
       {/* Legend */}
-      <MapLegend />
+      <MapLegend activeTypes={activeTypes} onToggle={handleToggleType} />
 
       {/* Listing count badge */}
       <div className="absolute top-4 left-4 bg-card/95 backdrop-blur-sm rounded-lg border border-border shadow-lg px-3 py-1.5 z-[500]">
-        <span className="text-xs font-medium text-foreground">{resolvedListings.length} listing{resolvedListings.length !== 1 ? "s" : ""}</span>
+        <span className="text-xs font-medium text-foreground">{filteredListings.length} listing{filteredListings.length !== 1 ? "s" : ""}</span>
       </div>
 
       {/* Mobile bottom preview card */}
