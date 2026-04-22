@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  MapPin, Calendar, DollarSign, Bed, Bath, Car, Wifi, Heart, ShieldCheck, Sparkles, Users, MessageSquare, ArrowLeft, Flag, Home, Cigarette, PawPrint, GraduationCap, Share2, FileText, X, Clock, AlertCircle, Edit, CreditCard
+  MapPin, Calendar, DollarSign, Bed, Bath, Car, Wifi, Heart, ShieldCheck, Sparkles, Users, MessageSquare, ArrowLeft, Flag, Home, Cigarette, PawPrint, GraduationCap, Share2, FileText, X, Clock, AlertCircle, Edit, CreditCard, Grid3x3
 } from "lucide-react";
 import { getParkingDetailDisplay, getParkingLabel } from "@/lib/parkingHelpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -400,40 +400,80 @@ export default function ListingDetail() {
         {/* Hero Gallery */}
          {photos.length > 0 && (
           <div className="mb-6 w-full">
-            <div 
-              className="relative rounded-3xl overflow-hidden bg-muted aspect-video w-full cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => {
-                setLightboxOpen(true);
-              }}
-            >
-              <img
-                src={photos[selectedPhoto]}
-                alt={`${listing.title} — ${[listing.neighborhood, listing.city].filter(Boolean).join(", ")} — photo ${selectedPhoto + 1} of ${photos.length}`}
-                className="w-full h-full object-cover" loading="lazy" decoding="async" />
+            {/* Main photo + side photos grid (desktop) */}
+            <div className="relative rounded-2xl overflow-hidden bg-muted">
+              {photos.length >= 3 ? (
+                /* Grid layout for 3+ photos */
+                <div className="grid grid-cols-1 sm:grid-cols-4 sm:grid-rows-2 gap-1 sm:gap-1.5 aspect-[16/9] sm:aspect-[2/1]">
+                  {/* Main large photo */}
+                  <div
+                    className="sm:col-span-2 sm:row-span-2 relative cursor-pointer group"
+                    onClick={() => { setSelectedPhoto(0); setLightboxOpen(true); }}
+                  >
+                    <img src={photos[0]} alt={`${listing.title} — main photo`}
+                      className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300" loading="eager" />
+                  </div>
+                  {/* Side photos */}
+                  {photos.slice(1, 5).map((p, i) => (
+                    <div
+                      key={i}
+                      className="hidden sm:block relative cursor-pointer group"
+                      onClick={() => { setSelectedPhoto(i + 1); setLightboxOpen(true); }}
+                    >
+                      <img src={p} alt={`${listing.title} — photo ${i + 2}`}
+                        className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300" loading="lazy" />
+                    </div>
+                  ))}
+                  {/* Show all photos button */}
+                  <button
+                    onClick={() => setLightboxOpen(true)}
+                    className="absolute bottom-3 right-3 bg-white/95 dark:bg-black/80 text-foreground px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg hover:bg-white dark:hover:bg-black transition-colors flex items-center gap-1.5 backdrop-blur-sm border border-border/50"
+                  >
+                    <Grid3x3 className="w-3.5 h-3.5" />
+                    Show all {photos.length} photos
+                  </button>
+                </div>
+              ) : (
+                /* Single/double photo — simple view */
+                <div
+                  className="relative aspect-video cursor-pointer group"
+                  onClick={() => setLightboxOpen(true)}
+                >
+                  <img src={photos[selectedPhoto]} alt={`${listing.title}`}
+                    className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300" loading="eager" />
+                  {photos.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+                      className="absolute bottom-3 right-3 bg-white/95 dark:bg-black/80 text-foreground px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1.5"
+                    >
+                      <Grid3x3 className="w-3.5 h-3.5" />
+                      {photos.length} photos
+                    </button>
+                  )}
+                </div>
+              )}
+              {/* Badges */}
               {listing.is_featured && (
-                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-accent text-accent-foreground px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs font-semibold flex items-center gap-1">
+                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-accent text-accent-foreground px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-md">
                   <Sparkles className="w-3 h-3" /> Featured
                 </div>
               )}
               {listing.is_boosted && (
-                <div className="absolute top-3 left-28 sm:top-4 sm:left-40 bg-secondary text-secondary-foreground px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs font-semibold">
+                <div className="absolute top-3 left-28 sm:top-4 sm:left-40 bg-secondary text-secondary-foreground px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs font-semibold shadow-md">
                   Boosted
                 </div>
               )}
             </div>
+            {/* Thumbnail strip (mobile) */}
             {photos.length > 1 && (
-              <div className="flex gap-2 mt-3 overflow-x-auto pb-2">
+              <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1 sm:hidden">
                 {photos.map((p, i) => (
                   <button 
-                    key={i} 
-                    onClick={() => setSelectedPhoto(i)}
-                    onDoubleClick={() => {
-                      setSelectedPhoto(i);
-                      setLightboxOpen(true);
-                    }}
-                    className={`w-16 h-12 sm:w-20 sm:h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors cursor-pointer hover:opacity-80 ${i === selectedPhoto ? "border-accent" : "border-muted"}`}
+                    key={i}
+                    onClick={() => { setSelectedPhoto(i); setLightboxOpen(true); }}
+                    className={`w-14 h-10 rounded-md overflow-hidden flex-shrink-0 border-2 transition-colors ${i === selectedPhoto ? "border-accent" : "border-transparent"}`}
                   >
-                    <img src={p} alt={`${listing.title} — photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <img src={p} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
                   </button>
                 ))}
               </div>
