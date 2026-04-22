@@ -48,7 +48,7 @@ export default function AppLayout() {
           </div>
         )}
       </main>
-      <Footer />
+      {!isMessages && <Footer />}
       <MobileBottomNav />
       {showWelcome && user && (
         <WelcomeModal user={user} onComplete={handleOnboardingComplete} />
