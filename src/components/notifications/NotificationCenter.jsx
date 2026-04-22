@@ -106,7 +106,12 @@ export default function NotificationCenter() {
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-80 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
+        <>
+          {/* Mobile overlay backdrop */}
+          <div className="fixed inset-0 bg-black/20 z-40 sm:hidden" onClick={() => setOpen(false)} />
+
+          {/* Notification panel — fixed on mobile, absolute on desktop */}
+          <div className="fixed sm:absolute left-2 right-2 top-14 sm:left-auto sm:right-0 sm:top-10 sm:w-80 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden max-h-[80vh] sm:max-h-[calc(100vh-80px)]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="font-semibold text-foreground text-sm">Notifications</span>
             <div className="flex items-center gap-1">
@@ -158,6 +163,7 @@ export default function NotificationCenter() {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );
