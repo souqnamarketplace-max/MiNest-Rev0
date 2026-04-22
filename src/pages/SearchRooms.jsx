@@ -248,8 +248,20 @@ export default function SearchRooms() {
     }
 
     nonBoosted.sort((a, b) => {
-      if (filters.sort === "rent_normalized_monthly") return (a.rent_normalized_monthly || 0) - (b.rent_normalized_monthly || 0);
-      if (filters.sort === "-rent_normalized_monthly") return (b.rent_normalized_monthly || 0) - (a.rent_normalized_monthly || 0);
+      if (filters.sort === "rent_normalized_monthly" || filters.sort === "-rent_normalized_monthly") {
+        // Normalize all rent amounts to monthly equivalent for fair comparison
+        const normalize = (listing) => {
+          const amount = Number(listing.rent_amount) || Number(listing.monthly_rent) || 0;
+          if (!amount) return listing.rent_normalized_monthly || 0;
+          const period = listing.rent_period || 'monthly';
+          if (period === 'daily') return amount * 30;
+          if (period === 'weekly') return amount * 4.33;
+          return listing.rent_normalized_monthly || amount;
+        };
+        const aNorm = normalize(a);
+        const bNorm = normalize(b);
+        return filters.sort === "rent_normalized_monthly" ? aNorm - bNorm : bNorm - aNorm;
+      }
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
 
