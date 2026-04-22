@@ -29,7 +29,7 @@ function ViewingCard({ appointment, onCancel }) {
   const config = STATUS_CONFIG[appointment.status] || STATUS_CONFIG.requested;
   const Icon = config.icon;
   const startTime = new Date(appointment.requested_start_at || appointment.confirmed_start_at);
-  const endTime = new Date(appointment.requested_end_at || appointment.confirmed_end_at);
+  const endTime = new Date(startTime.getTime() + 30 * 60 * 1000); // 30 min duration
 
   return (
     <Card className={`${config.color} border-2 p-4 space-y-3`}>

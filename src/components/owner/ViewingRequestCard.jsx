@@ -23,7 +23,8 @@ export default function ViewingRequestCard({ appointment, viewerProfile, listing
   const [showDeclineInput, setShowDeclineInput] = useState(false);
 
   const requestedStart = new Date(appointment.requested_start_at);
-  const requestedEnd = new Date(appointment.requested_end_at);
+  const duration = 30; // default 30 min viewing duration
+  const requestedEnd = new Date(requestedStart.getTime() + duration * 60 * 1000);
   const confirmedStart = appointment.confirmed_start_at ? new Date(appointment.confirmed_start_at) : null;
 
   const handleApprove = async () => {
@@ -32,7 +33,6 @@ export default function ViewingRequestCard({ appointment, viewerProfile, listing
       await entities.ViewingAppointment.update(appointment.id, {
         status: "confirmed",
         confirmed_start_at: appointment.requested_start_at,
-        confirmed_end_at: appointment.requested_end_at,
         approved_at: new Date().toISOString(),
       });
       toast.success("Viewing approved!");
@@ -68,7 +68,6 @@ export default function ViewingRequestCard({ appointment, viewerProfile, listing
       await entities.ViewingAppointment.update(appointment.id, {
         status: "awaiting_viewer_confirmation",
         confirmed_start_at: proposedStart.toISOString(),
-        confirmed_end_at: proposedEnd.toISOString(),
         reschedule_reason: message || "",
         owner_response_message: message || "",
       });
