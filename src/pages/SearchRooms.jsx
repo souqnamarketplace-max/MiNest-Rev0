@@ -33,7 +33,6 @@ export default function SearchRooms() {
 
   const { user, navigateToLogin } = useAuth();
   const queryClient = useQueryClient();
-  const [viewMode, setViewMode] = useState(typeof window !== "undefined" && window.innerWidth < 1024 ? "grid" : "split"); // grid, map, split
   const [mobileMapOpen, setMobileMapOpen] = useState(false);
 
   // Lock body scroll when mobile map overlay is open
@@ -389,9 +388,7 @@ export default function SearchRooms() {
         </div>
       ) : (
         <>
-          <div className={`grid gap-3 sm:gap-4 w-full ${
-            viewMode === "split" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-          }`}>
+          <div className="grid gap-3 sm:gap-4 w-full grid-cols-1 sm:grid-cols-2">
             {paginatedListings.map(listing => (
               <div key={listing.id}
                 onMouseEnter={() => setHoveredListingId(listing.id)}
@@ -435,134 +432,6 @@ export default function SearchRooms() {
     </>
   );
 
-  const resultsContent = (
-    <>
-      {/* Page Header */}
-      <div className="mb-3 sm:mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-2 sm:mb-4">
-          <div>
-            {hostFilter ? (
-              <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Listings by this Host</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                  Showing {allListings.length} listing{allListings.length !== 1 ? "s" : ""} from this host
-                  <Link to="/search" className="ml-2 text-accent hover:underline">← Back to all listings</Link>
-                </p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Find a Place</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Browse available places across Canada and the USA</p>
-              </>
-            )}
-          </div>
-          {user && (
-            <div className="flex items-center gap-2 shrink-0">
-              <SaveSearchButton filters={filters} searchType="room_search" />
-              <Link to="/saved-searches" className="text-xs text-accent hover:underline flex items-center gap-1 shrink-0 h-9 px-3 rounded-md hover:bg-accent/5">
-                <Bookmark className="w-4 h-4" /> <span className="hidden sm:inline">Saved</span>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Alert nudge */}
-        {showAlertNudge && !nudgeDismissed && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-accent/5 border border-accent/20 rounded-xl px-4 py-3 mb-4">
-            <div className="flex items-start sm:items-center gap-2 text-sm">
-              <Bell className="w-4 h-4 text-accent flex-shrink-0 mt-0.5 sm:mt-0" />
-              <span className="text-foreground font-medium">Get alerts for new listings in {filters.city}?</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <SaveSearchButton filters={filters} searchType="room_search" />
-              <button onClick={() => { setNudgeDismissed(true); setShowAlertNudge(false); }}
-                className="text-muted-foreground hover:text-foreground p-1"><X className="w-3.5 h-3.5" /></button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="flex flex-col gap-3 mb-4 pb-4 border-b border-border">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {isLoading ? "Loading..." : `${listings.length} listing${listings.length !== 1 ? "s" : ""} found`}
-            </p>
-            {totalPages > 1 && <p className="text-xs text-muted-foreground">Page {currentPage} of {totalPages}</p>}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <MobileDrawerSelect value={rentPeriodTab} onValueChange={setRentPeriodTab} className="w-28 h-9" title="Period">
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-            </MobileDrawerSelect>
-
-            <MobileDrawerSelect value={filters.sort || "-created_at"} onValueChange={(v) => setFilters(prev => ({ ...prev, sort: v }))} className="w-36 h-9" title="Sort">
-              <SelectItem value="-created_at">Newest</SelectItem>
-              <SelectItem value="rent_normalized_monthly">Price: Low</SelectItem>
-              <SelectItem value="-rent_normalized_monthly">Price: High</SelectItem>
-              <SelectItem value="-is_featured">Featured</SelectItem>
-            </MobileDrawerSelect>
-
-            {/* Desktop view toggle */}
-            <div className="hidden lg:flex rounded-lg border border-border overflow-hidden">
-              {[
-                { mode: "grid", icon: <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>, label: "Grid" },
-                { mode: "split", icon: <><List className="w-4 h-4" /><Map className="w-3 h-3" /></>, label: "Split" },
-                { mode: "map", icon: <Map className="w-4 h-4" />, label: "Map" },
-              ].map(({ mode, icon, label }) => (
-                <button key={mode} onClick={() => setViewMode(mode)}
-                  className={`flex items-center gap-1 px-3 h-9 text-xs font-medium transition-colors ${
-                    viewMode === mode ? "bg-foreground text-background" : "bg-card text-muted-foreground hover:text-foreground"
-                  } ${mode !== "grid" ? "border-l border-border" : ""}`}
-                >
-                  {icon} {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {activeFilterCount > 0 && (
-          <ActiveFilterChips filters={filters} onRemoveFilter={handleRemoveFilter} onClearAll={handleClearAllFilters} />
-        )}
-      </div>
-
-      {/* Results */}
-      {viewMode === "map" ? (
-        <div className="h-[calc(100vh-280px)] min-h-[500px] w-full rounded-2xl overflow-hidden">
-          {isLoading ? <Skeleton className="w-full h-full" /> : (
-            listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
-              onListingHover={setHoveredListingId} />
-          )}
-        </div>
-      ) : viewMode === "split" ? (
-        <div className="hidden lg:flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
-          {/* Left: scrollable listing cards */}
-          <div className="w-1/2 overflow-y-auto pr-2 space-y-3 scrollbar-thin">
-            {listingGrid}
-          </div>
-          {/* Right: sticky map - only mount on desktop */}
-          <div className="w-1/2 sticky top-0 rounded-2xl overflow-hidden">
-            {listings.length > 0 && <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
-              onListingHover={setHoveredListingId} />}
-          </div>
-        </div>
-      ) : null}
-
-      {/* Grid view (default on mobile, option on desktop) */}
-      {(viewMode === "grid" || (viewMode === "split" && typeof window !== 'undefined' && window.innerWidth < 1024)) && (
-        <div className="lg:hidden block">{listingGrid}</div>
-      )}
-      {viewMode === "grid" && (
-        <div className="hidden lg:block">{listingGrid}</div>
-      )}
-    </>
-  );
-
   return (
     <SearchLayout filters={filters} onFiltersChange={setFilters} activeFilterCount={activeFilterCount}>
       {/* Pull-to-refresh */}
@@ -574,9 +443,164 @@ export default function SearchRooms() {
         </div>
       )}
 
-      {resultsContent}
+      {/* ─── Desktop: 50/50 Split (List | Map) ─── */}
+      <div className="hidden lg:flex h-[calc(100vh-130px)]">
+        {/* Left: Scrollable listing list */}
+        <div className="w-1/2 xl:w-[55%] overflow-y-auto px-4 xl:px-6 py-4">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-3">
+            {hostFilter ? (
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Listings by this Host</h2>
+                <p className="text-xs text-muted-foreground">
+                  {allListings.length} listing{allListings.length !== 1 ? "s" : ""}
+                  <Link to="/search" className="ml-2 text-accent hover:underline">← All listings</Link>
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {isLoading ? "Loading..." : `${listings.length} listing${listings.length !== 1 ? "s" : ""} found`}
+                {totalPages > 1 && <span className="ml-1">· Page {currentPage} of {totalPages}</span>}
+              </p>
+            )}
+            <div className="flex items-center gap-2">
+              <MobileDrawerSelect value={rentPeriodTab} onValueChange={setRentPeriodTab} className="w-28 h-8 text-xs" title="Period">
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+              </MobileDrawerSelect>
+              <MobileDrawerSelect value={filters.sort || "-created_at"} onValueChange={(v) => setFilters(prev => ({ ...prev, sort: v }))} className="w-32 h-8 text-xs" title="Sort">
+                <SelectItem value="-created_at">Newest</SelectItem>
+                <SelectItem value="rent_normalized_monthly">Price: Low</SelectItem>
+                <SelectItem value="-rent_normalized_monthly">Price: High</SelectItem>
+                <SelectItem value="-is_featured">Featured</SelectItem>
+              </MobileDrawerSelect>
+            </div>
+          </div>
 
-      {/* Mobile floating map button — only when map overlay is closed */}
+          {activeFilterCount > 0 && (
+            <div className="mb-3">
+              <ActiveFilterChips filters={filters} onRemoveFilter={handleRemoveFilter} onClearAll={handleClearAllFilters} />
+            </div>
+          )}
+
+          {/* Listings */}
+          {isLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {Array(6).fill(0).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border overflow-hidden">
+                  <Skeleton className="aspect-video" />
+                  <div className="p-3 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div>
+                </div>
+              ))}
+            </div>
+          ) : listings.length === 0 ? (
+            <div className="text-center py-16">
+              <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-base font-semibold mb-1">No rooms found</h3>
+              <p className="text-sm text-muted-foreground mb-4">Try adjusting your filters.</p>
+              <Button variant="outline" size="sm" onClick={handleClearAllFilters}>Clear filters</Button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {paginatedListings.map(listing => (
+                  <div key={listing.id}
+                    onMouseEnter={() => setHoveredListingId(listing.id)}
+                    onMouseLeave={() => setHoveredListingId(null)}
+                    className={`transition-all duration-150 rounded-2xl ${
+                      hoveredListingId === listing.id ? "ring-2 ring-accent/30" : ""
+                    }`}
+                  >
+                    <ListingCard listing={listing} isFavorited={favIds.has(listing.id)} onToggleFavorite={handleToggleFavorite} />
+                  </div>
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1 mt-6 mb-4">
+                  <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="h-8 px-2">
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce((acc, p, idx, arr) => {
+                      if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) => item === "..." ? (
+                      <span key={`ellipsis-${idx}`} className="px-1 text-muted-foreground text-xs">…</span>
+                    ) : (
+                      <Button key={item} variant={currentPage === item ? "default" : "outline"} size="sm"
+                        onClick={() => handlePageChange(item)} className="h-8 w-8 p-0 text-xs">{item}</Button>
+                    ))
+                  }
+                  <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="h-8 px-2">
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Right: Sticky Map */}
+        <div className="w-1/2 xl:w-[45%] sticky top-0">
+          {listings.length > 0 ? (
+            <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
+              onListingHover={setHoveredListingId} />
+          ) : (
+            <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+              <p className="text-sm text-muted-foreground">No listings to show on map</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Mobile: Grid + floating map button ─── */}
+      <div className="lg:hidden px-4 py-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          {hostFilter ? (
+            <div>
+              <h2 className="text-lg font-bold">Listings by this Host</h2>
+              <p className="text-xs text-muted-foreground">
+                {allListings.length} listing{allListings.length !== 1 ? "s" : ""}
+                <Link to="/search" className="ml-2 text-accent hover:underline">← All</Link>
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {isLoading ? "Loading..." : `${listings.length} listing${listings.length !== 1 ? "s" : ""}`}
+            </p>
+          )}
+          <div className="flex items-center gap-1.5">
+            <MobileDrawerSelect value={rentPeriodTab} onValueChange={setRentPeriodTab} className="w-24 h-8 text-xs" title="Period">
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="daily">Daily</SelectItem>
+            </MobileDrawerSelect>
+            <MobileDrawerSelect value={filters.sort || "-created_at"} onValueChange={(v) => setFilters(prev => ({ ...prev, sort: v }))} className="w-28 h-8 text-xs" title="Sort">
+              <SelectItem value="-created_at">Newest</SelectItem>
+              <SelectItem value="rent_normalized_monthly">Low $</SelectItem>
+              <SelectItem value="-rent_normalized_monthly">High $</SelectItem>
+            </MobileDrawerSelect>
+          </div>
+        </div>
+
+        {activeFilterCount > 0 && (
+          <div className="mb-3">
+            <ActiveFilterChips filters={filters} onRemoveFilter={handleRemoveFilter} onClearAll={handleClearAllFilters} />
+          </div>
+        )}
+
+        {listingGrid}
+      </div>
+
+      {/* Mobile floating map button */}
       {!mobileMapOpen && (
         <button onClick={() => setMobileMapOpen(true)}
           className="lg:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-foreground text-background px-5 py-3 rounded-full shadow-xl flex items-center gap-2 text-sm font-semibold hover:scale-105 active:scale-95 transition-transform">
@@ -587,7 +611,6 @@ export default function SearchRooms() {
       {/* Mobile full-screen map overlay */}
       {mobileMapOpen && (
         <div className="lg:hidden fixed inset-0 z-[100] bg-background">
-          {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-[600] bg-card/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-semibold text-foreground">{listings.length} listings</span>
             <button onClick={() => setMobileMapOpen(false)}
@@ -595,7 +618,6 @@ export default function SearchRooms() {
               <List className="w-3.5 h-3.5" /> List
             </button>
           </div>
-          {/* Map */}
           <div className="w-full h-full pt-12">
             {listings.length > 0 && <MapView listings={listings} filters={filters} isMobile={true}
               onListingHover={setHoveredListingId} />}
