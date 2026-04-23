@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/AuthContext";
 
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import NotifToast from "@/components/notifications/NotifToast";
+import PushNotificationPrompt from "@/components/notifications/PushNotificationPrompt";
 
 export default function AppLayout() {
   const { user, isLoadingAuth, navigateToLogin, logout } = useAuth();
@@ -54,6 +55,7 @@ export default function AppLayout() {
         <WelcomeModal user={user} onComplete={handleOnboardingComplete} />
       )}
       <NotifToast />
+      <PushNotificationPrompt />
     </div>
   );
 }
