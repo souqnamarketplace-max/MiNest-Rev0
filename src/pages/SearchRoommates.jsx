@@ -2,6 +2,7 @@ import { seekerUrl } from '@/lib/listingHelpers';
 import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
+import { supabase } from '@/lib/supabase';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,14 +178,21 @@ export default function SearchRoommates() {
                     const seekerName = seekerProfiles[0]?.display_name || seekerProfiles[0]?.full_name || seeker.headline || "Seeker";
 
                     // Find or create conversation - filter by both participants to keep conversations separate
-                    const existing = await entities.Conversation.filter({
-                      participant_ids: seeker.owner_user_id
-                    });
-                    let conv = existing.find(c => c.participant_ids?.includes(user.id) && c.participant_ids?.length === 2 && c.roommate_profile_id === seeker.id);
+                    let conv = null;
+                    try {
+                      const { data: existingConvos } = await supabase
+                        .from('conversations')
+                        .select('*')
+                        .contains('participant_ids', [user.id, seeker.owner_user_id])
+                        .limit(1);
+                      conv = existingConvos?.[0];
+                    } catch {}
+                    
                     if (!conv) {
                       conv = await entities.Conversation.create({
                         participant_ids: [user.id, seeker.owner_user_id],
-                        roommate_profile_id: seeker.id,
+                        source_type: "seeker",
+                        source_id: seeker.id,
                         status: "active"
                       });
                     }

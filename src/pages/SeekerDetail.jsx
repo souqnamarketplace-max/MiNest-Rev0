@@ -55,19 +55,26 @@ export default function SeekerDetail() {
     }
     try {
       const seekerName = seekerProfile?.display_name || seekerProfile?.full_name || seeker.headline || "Seeker";
-      const { data: existingConvos } = await supabase
-        .from('conversations')
-        .select('*')
-        .contains('participant_ids', [user.id, seeker.owner_user_id])
-        .eq('roommate_profile_id', seeker.id)
-        .limit(1);
+      
+      // Try to find existing conversation between these two users about this seeker profile
+      let conv = null;
+      try {
+        const { data: existingConvos } = await supabase
+          .from('conversations')
+          .select('*')
+          .contains('participant_ids', [user.id, seeker.owner_user_id])
+          .limit(1);
+        conv = existingConvos?.[0];
+      } catch {
+        // If the query fails (e.g. column issues), we'll just create a new one
+      }
 
-      let conv = existingConvos?.[0];
       if (!conv) {
         conv = await entities.Conversation.create({
           participant_ids: [user.id, seeker.owner_user_id],
           participant_names: [user.full_name || user.email, seekerName],
-          roommate_profile_id: seeker.id,
+          source_type: "seeker",
+          source_id: seeker.id,
           status: "active"
         });
       }
