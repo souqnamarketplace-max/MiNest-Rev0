@@ -148,7 +148,7 @@ export default function CityRoomsPage() {
               <Home className="w-4 h-4" /> Browse All Listings
             </Button>
           </Link>
-          <Link to="/seeker-onboarding">
+          <Link to="/roommates">
             <Button variant="outline" className="gap-2">Find Roommates in {city}</Button>
           </Link>
         </div>
