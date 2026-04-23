@@ -173,9 +173,15 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
         if (data[0]) {
           if (data[0].boundingbox) {
             const [s, n, w, e] = data[0].boundingbox.map(parseFloat);
-            map.fitBounds([[s, w], [n, e]], { padding: [30, 30], maxZoom: zoom });
+            if ([s, n, w, e].every(v => isFinite(v))) {
+              map.fitBounds([[s, w], [n, e]], { padding: [30, 30], maxZoom: zoom });
+            }
           } else {
-            map.flyTo([parseFloat(data[0].lat), parseFloat(data[0].lon)], zoom, { animate: true, duration: 1 });
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            if (isFinite(lat) && isFinite(lon)) {
+              map.flyTo([lat, lon], zoom, { animate: true, duration: 1 });
+            }
           }
         }
       } catch {}
@@ -354,10 +360,11 @@ export default function MapView({ listings, filters, onListingHover, activeListi
   );
 
   const center = useMemo(() => {
-    const valid = filteredListings.filter(l => typeof l._lat === 'number' && isFinite(l._lat));
+    const valid = filteredListings.filter(l => typeof l._lat === 'number' && isFinite(l._lat) && typeof l._lng === 'number' && isFinite(l._lng));
     if (valid.length === 0) return [53.5, -113.5];
     const avgLat = valid.reduce((s, l) => s + l._lat, 0) / valid.length;
     const avgLng = valid.reduce((s, l) => s + l._lng, 0) / valid.length;
+    if (!isFinite(avgLat) || !isFinite(avgLng)) return [53.5, -113.5];
     return [avgLat, avgLng];
   }, [filteredListings]);
 
