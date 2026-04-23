@@ -21,7 +21,8 @@ export default function SearchRoommates() {
   const { country: globalCountry } = useCountry();
   const { user, navigateToLogin, logout } = useAuth();
   const [city, setCity] = useState("");
-  const [country, setCountry] = useState(globalCountry || "");
+  const [country, setCountry] = useState(globalCountry || "Canada");
+  const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
@@ -31,9 +32,10 @@ export default function SearchRoommates() {
     const q = { status: "active" };
     if (country) q.preferred_country = country;
     if (city) q.preferred_cities = city;
+    if (budgetMin) q.min_budget = { $gte: Number(budgetMin) };
     if (budgetMax) q.max_budget = { $lte: Number(budgetMax) };
     return q;
-  }, [city, country, budgetMax]);
+  }, [city, country, budgetMin, budgetMax]);
 
   const { data: allSeekers = [], isLoading, error } = useQuery({
     queryKey: ["seekers", filterQuery],
@@ -49,8 +51,8 @@ export default function SearchRoommates() {
   }, [error]);
 
   // Reset to page 1 on filter change
-  useEffect(() => { setCurrentPage(1); }, [city, country, budgetMax]);
-  useEffect(() => { setCountry(globalCountry || ""); }, [globalCountry]);
+  useEffect(() => { setCurrentPage(1); }, [city, country, budgetMin, budgetMax]);
+  useEffect(() => { setCountry(globalCountry || "Canada"); }, [globalCountry]);
 
   const totalPages = Math.ceil(allSeekers.length / PAGE_SIZE);
   const seekers = allSeekers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -77,15 +79,16 @@ export default function SearchRoommates() {
 
       {/* Filters */}
       <div className="bg-card rounded-2xl border border-border p-4 mb-6 sm:mb-8">
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="w-full" />
           <Select value={country} onValueChange={setCountry}>
             <SelectTrigger className="w-full"><SelectValue placeholder="Country" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Canada">🇨🇦 Canada</SelectItem>
-              <SelectItem value="USA">🇺🇸 USA</SelectItem>
+              <SelectItem value="Canada">🍁 Canada</SelectItem>
+              <SelectItem value="United States">🇺🇸 United States</SelectItem>
             </SelectContent>
           </Select>
+          <Input type="number" placeholder="Min budget" value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)} className="w-full" />
           <Input type="number" placeholder="Max budget" value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)} className="w-full" />
         </div>
       </div>
