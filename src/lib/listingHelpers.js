@@ -37,6 +37,5 @@ export function generateSeekerSlug(headline, id) {
  */
 export function seekerUrl(seeker) {
   if (!seeker) return '/roommates';
-  const slug = seeker.slug?.trim();
-  return `/seeker/${slug || seeker.id}`;
+  return `/seeker/${seeker.id}`;
 }
