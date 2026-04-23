@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import ShareButton from "@/components/common/ShareButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -142,7 +143,14 @@ export default function SeekerDetail() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground mb-2">{seeker.headline || "Roommate Seeker"}</h1>
+            <div className="flex items-start justify-between">
+              <h1 className="text-2xl font-bold text-foreground mb-2">{seeker.headline || "Roommate Seeker"}</h1>
+              <ShareButton
+                path={`/seeker/${seeker.id}`}
+                title={`${seeker.headline || "Roommate Seeker"} — Looking for a room on MiNest`}
+                description={seeker.bio?.slice(0, 100) || ""}
+              />
+            </div>
             {seeker.preferred_cities?.length > 0 && (
               <div className="flex items-center gap-1 text-muted-foreground mb-1">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
