@@ -164,6 +164,7 @@ export default function CreateListing() {
   // Photo handling
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
+    if (!files.length) return;
     if (form.photos.length + files.length > APP_CONFIG.maxPhotos) {
       toast.error(`Max ${APP_CONFIG.maxPhotos} photos allowed`);
       return;
@@ -171,20 +172,34 @@ export default function CreateListing() {
     setUploading(true);
     const urls = [];
     for (const file of files) {
+      // Validate file type (defense in depth — browser accept= can be bypassed)
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        toast.error(`${file.name}: only JPEG, PNG, WebP, and GIF images are allowed`);
+        continue;
+      }
       if (file.size > APP_CONFIG.maxImageSizeBytes) {
         toast.error(`${file.name} exceeds ${APP_CONFIG.maxImageSizeMB}MB limit`);
         continue;
       }
-      const compressedFile = await compressImage(file);
-      const { file_url } = await uploadFile(compressedFile, 'listing-photos');
-      urls.push(file_url);
+      try {
+        const compressedFile = await compressImage(file);
+        const { file_url } = await uploadFile(compressedFile, 'listing-photos');
+        urls.push(file_url);
+      } catch (err) {
+        console.error('Photo upload error:', err);
+        toast.error(`Failed to upload ${file.name}: ${err.message || 'Unknown error'}`);
+      }
     }
-    const newPhotos = [...form.photos, ...urls];
-    setForm(prev => ({
-      ...prev,
-      photos: newPhotos,
-      cover_photo_url: prev.cover_photo_url || newPhotos[0] || "",
-    }));
+    if (urls.length > 0) {
+      const newPhotos = [...form.photos, ...urls];
+      setForm(prev => ({
+        ...prev,
+        photos: newPhotos,
+        cover_photo_url: prev.cover_photo_url || newPhotos[0] || "",
+      }));
+      toast.success(`${urls.length} photo${urls.length > 1 ? 's' : ''} uploaded`);
+    }
     setUploading(false);
   };
 
