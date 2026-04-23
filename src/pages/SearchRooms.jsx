@@ -6,7 +6,7 @@ import { SelectItem } from "@/components/ui/select";
 import MobileDrawerSelect from "@/components/ui/mobile-drawer-select";
 import { Search, Map, Bell, Bookmark, X, ChevronLeft, ChevronRight, Loader2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import ListingCard from "@/components/listings/ListingCard";
 import MapView from "@/components/search/MapView";
 import SearchLayout from "@/components/search/SearchLayout";
@@ -18,7 +18,8 @@ import { matchesParkingFilter } from "@/lib/parkingHelpers";
 import usePullToRefresh from "@/hooks/usePullToRefresh";
 
 export default function SearchRooms() {
-  const urlParams = new URLSearchParams(window.location.search);
+  const location = useLocation();
+  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const [cityInput, setCityInput] = useState(urlParams.get("city") || "");
   const { country: currentCountry } = useCountry();
   const storedCountry = localStorage.getItem('minest-country') || '';
@@ -198,7 +199,7 @@ export default function SearchRooms() {
       if (filters.price_max) q.rent_normalized_monthly = { ...q.rent_normalized_monthly, $lte: Number(filters.price_max) };
     }
     return q;
-  }, [filters]);
+  }, [filters, hostFilter]);
 
   const { data: allListings = [], isLoading, error, refetch } = useQuery({
     queryKey: ["listings", filterQuery, filters.sort],
@@ -440,8 +441,20 @@ export default function SearchRooms() {
       <div className="mb-3 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-2 sm:mb-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Find a Place</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Browse available places across Canada and the USA</p>
+            {hostFilter ? (
+              <>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Listings by this Host</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Showing {allListings.length} listing{allListings.length !== 1 ? "s" : ""} from this host
+                  <Link to="/search" className="ml-2 text-accent hover:underline">← Back to all listings</Link>
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Find a Place</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Browse available places across Canada and the USA</p>
+              </>
+            )}
           </div>
           {user && (
             <div className="flex items-center gap-2 shrink-0">
