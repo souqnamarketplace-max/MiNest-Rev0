@@ -1,19 +1,18 @@
 // Firebase Messaging Service Worker
 // CRITICAL: All event handlers must be registered at the top level during initial evaluation
+// Config values are injected at build time by vite-plugin-sw-env
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 // Initialize Firebase immediately at the top level
-// Config is hardcoded here because service workers can't access import.meta.env
-// These are public keys (safe to expose) — they only identify the Firebase project
 firebase.initializeApp({
-  apiKey: "AIzaSyDrISifC_yuRbJF_7Hiv4E0OM_J_IVxhJ4",
-  authDomain: "minest-70bc2.firebaseapp.com",
-  projectId: "minest-70bc2",
-  storageBucket: "minest-70bc2.firebasestorage.app",
-  messagingSenderId: "717987535014",
-  appId: "1:717987535014:web:294cf9089925caa1b4fc67",
+  apiKey: '__FIREBASE_API_KEY__',
+  authDomain: '__FIREBASE_AUTH_DOMAIN__',
+  projectId: '__FIREBASE_PROJECT_ID__',
+  storageBucket: '__FIREBASE_STORAGE_BUCKET__',
+  messagingSenderId: '__FIREBASE_MESSAGING_SENDER_ID__',
+  appId: '__FIREBASE_APP_ID__',
 });
 
 const messaging = firebase.messaging();
