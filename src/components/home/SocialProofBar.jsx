@@ -2,37 +2,74 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
+import { useCountry } from "@/lib/CountryContext";
+import { supabase } from "@/lib/supabase";
 
 export default function SocialProofBar() {
+  const { country } = useCountry();
+
+  // Fetch active listings filtered by country
   const { data: listings = [] } = useQuery({
-    queryKey: ["public-stats-listings"],
-    queryFn: () => entities.Listing.filter({ status: "active" }, "-created_at", 500),
+    queryKey: ["public-stats-listings", country],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("listings")
+        .select("id, city, country")
+        .eq("status", "active")
+        .eq("country", country)
+        .limit(500);
+      return data || [];
+    },
     staleTime: 300000,
   });
 
-  const { data: rented = [] } = useQuery({
-    queryKey: ["public-stats-rented"],
-    queryFn: () => entities.RentalAgreement.filter({ status: "accepted" }, "-created_at", 500),
+  // Fetch rented listings filtered by country
+  const { data: rentedCount = 0 } = useQuery({
+    queryKey: ["public-stats-rented", country],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["rented", "archived"])
+        .eq("country", country);
+      return error ? 0 : (count || 0);
+    },
     staleTime: 300000,
   });
 
-  const { data: seekers = [] } = useQuery({
-    queryKey: ["public-stats-seekers"],
-    queryFn: () => entities.SeekerProfile.filter({ status: "active" }, "-created_at", 500),
+  // Fetch seekers — filter by preferred country if available
+  const { data: seekerCount = 0 } = useQuery({
+    queryKey: ["public-stats-seekers", country],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("seeker_profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+        .eq("preferred_country", country);
+      if (error || count === 0) {
+        // Fallback: count all active seekers if preferred_country column doesn't exist
+        const { count: fallback } = await supabase
+          .from("seeker_profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active");
+        return fallback || 0;
+      }
+      return count || 0;
+    },
     staleTime: 300000,
   });
 
   const cities = new Set(listings.map(l => l.city).filter(Boolean)).size;
   const totalListings = listings.length;
-  const totalRented = rented.length;
-  const totalSeekers = seekers.length;
 
   const fmt = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}k+` : n > 0 ? `${n}+` : "—";
 
+  const countryShort = country === "United States" ? "USA" : "Canada";
+
   const stats = [
-    { label: "Rooms Available", value: fmt(totalListings) },
-    { label: "Rooms Rented", value: fmt(totalRented) },
-    { label: "Room Seekers Active", value: fmt(totalSeekers) },
+    { label: `Rooms in ${countryShort}`, value: fmt(totalListings) },
+    { label: "Rooms Rented", value: fmt(rentedCount) },
+    { label: "Room Seekers Active", value: fmt(seekerCount) },
     { label: "Cities Covered", value: cities > 0 ? `${cities}+` : "—" },
   ];
 
