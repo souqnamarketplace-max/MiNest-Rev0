@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry';
 
 const AuthContext = createContext();
 
@@ -11,12 +12,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) setSentryUser(u);
       setIsLoadingAuth(false);
       setIsRoleResolved(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) setSentryUser(u); else clearSentryUser();
       setIsLoadingAuth(false);
       setIsRoleResolved(true);
 
