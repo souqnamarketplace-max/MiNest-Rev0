@@ -18,8 +18,9 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
   const regions = useMemo(() => getRegionsForCountry(filters.country || country), [filters.country, country]);
 
   const updateFilter = (key, value) => {
+    const cleanValue = value === "__all__" ? "" : value;
     onFiltersChange(prev => {
-      const next = { ...prev, [key]: value };
+      const next = { ...prev, [key]: cleanValue };
       if (key === "country") {
         next.province_or_state = "";
         next.city = "";
@@ -69,7 +70,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               className="w-44 h-9"
               title="Province / State"
             >
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="__all__">All</SelectItem>
               {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </MobileDrawerSelect>
 
@@ -90,7 +91,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               className="w-36 h-9"
               title="Room Type"
             >
-              <SelectItem value="">Any type</SelectItem>
+              <SelectItem value="__all__">Any type</SelectItem>
               {LISTING_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
             </MobileDrawerSelect>
 
@@ -100,7 +101,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               className="w-36 h-9"
               title="Property"
             >
-              <SelectItem value="">Any property</SelectItem>
+              <SelectItem value="__all__">Any property</SelectItem>
               {PROPERTY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
             </MobileDrawerSelect>
 
@@ -175,7 +176,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               className="w-32 h-9 shrink-0"
               title="Type"
             >
-              <SelectItem value="">Any type</SelectItem>
+              <SelectItem value="__all__">Any type</SelectItem>
               {LISTING_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
             </MobileDrawerSelect>
 
@@ -234,7 +235,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               <Select value={filters.province_or_state || ""} onValueChange={(v) => updateFilter("province_or_state", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="__all__">All</SelectItem>
                   {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -246,7 +247,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               <Select value={filters.property_type || ""} onValueChange={(v) => updateFilter("property_type", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="__all__">Any</SelectItem>
                   {PROPERTY_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -258,7 +259,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               <Select value={filters.furnishing || ""} onValueChange={(v) => updateFilter("furnishing", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="__all__">Any</SelectItem>
                   {FURNISHING_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -270,7 +271,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               <Select value={filters.laundry || ""} onValueChange={(v) => updateFilter("laundry", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="__all__">Any</SelectItem>
                   {LAUNDRY_OPTIONS.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -282,7 +283,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               <Select value={filters.floor_level || ""} onValueChange={(v) => updateFilter("floor_level", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="__all__">Any</SelectItem>
                   {FLOOR_LEVEL_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -294,7 +295,7 @@ export default function SearchLayout({ filters, onFiltersChange, children, activ
               <Select value={filters.ac_heating || ""} onValueChange={(v) => updateFilter("ac_heating", v)}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="__all__">Any</SelectItem>
                   {AC_HEATING_OPTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}
                 </SelectContent>
               </Select>
