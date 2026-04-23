@@ -10,11 +10,26 @@ import { APP_CONFIG } from '@/lib/config';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import CountrySwitcher from '@/components/layout/CountrySwitcher';
 import SignInRequiredModal from '@/components/modals/SignInRequiredModal';
+import { supabase } from '@/lib/supabase';
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const { user, isLoadingAuth, logout, navigateToLogin } = useAuth();
+
+  // Count unread conversations (conversations with messages newer than last read)
+  const { data: unreadMsgCount = 0 } = useQuery({
+    queryKey: ['unread-conversations', user?.id],
+    queryFn: async () => {
+      const convos = await entities.Conversation.filter({ participant_ids: [user.id] }, '-last_message_at', 50);
+      // Count conversations where the last message wasn't sent by the current user
+      const unread = convos.filter(c => c.last_message_sender_id && c.last_message_sender_id !== user.id && !c.read_by?.includes(user.id));
+      return unread.length;
+    },
+    enabled: !!user?.id,
+    staleTime: 15000,
+    refetchInterval: 30000,
+  });
 
   const { data: userProfile } = useQuery({
     queryKey: ['header-profile', user?.id],
@@ -72,10 +87,15 @@ export default function Header() {
               user ? (
                 <>
                   <NotificationCenter />
-                  <Link to="/messages">
+                  <Link to="/messages" className="relative">
                     <Button variant="ghost" size="icon" aria-label="Messages" className="h-9 w-9">
                       <MessageSquare className="w-5 h-5" />
                     </Button>
+                    {unreadMsgCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-accent text-accent-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
+                      </span>
+                    )}
                   </Link>
                   <Link to="/favorites">
                     <Button variant="ghost" size="icon" aria-label="Favorites" className="h-9 w-9">

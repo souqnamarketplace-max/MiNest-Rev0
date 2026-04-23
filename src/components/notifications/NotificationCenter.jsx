@@ -17,14 +17,18 @@ export default function NotificationCenter() {
   const panelRef = useRef(null);
 
   // Use React Query — shared cache, no duplicate fetches
-  const { data: notifications = [] } = useQuery({
+  const { data: rawNotifications = [] } = useQuery({
     queryKey: ["notifications", user?.id],
-    queryFn: () => entities.Notification.filter({ user_id: user.id }, '-created_at', 20),
+    queryFn: () => entities.Notification.filter({ user_id: user.id }, '-created_at', 50),
     enabled: !!user?.id,
-    staleTime: 15 * 1000,       // Fresh for 15s — prevents rapid re-fetches
-    refetchInterval: 30000,      // Poll every 30s as fallback
+    staleTime: 15 * 1000,
+    refetchInterval: 30000,
   });
 
+  // Filter out chat message notifications — those belong in the conversations list, not the bell
+  // Standard practice: notification center is for important events only
+  const MESSAGE_TYPES = ['message', 'new_message', 'message_request'];
+  const notifications = rawNotifications.filter(n => !MESSAGE_TYPES.includes(n.type));
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Realtime subscription for instant updates

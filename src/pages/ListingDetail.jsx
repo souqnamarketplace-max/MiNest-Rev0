@@ -35,7 +35,7 @@ import TenantRentalRequestModal from "@/components/payments/TenantRentalRequestM
 import SchemaInjector from "@/components/seo/SchemaInjector";
 import Breadcrumbs from "@/components/seo/Breadcrumbs";
 import { buildListingSchema, buildBreadcrumbSchema, cityPageUrl, setPageMeta } from "@/lib/seoHelpers";
-import { notifyReportFiled, notifyNewMessage } from "@/lib/notificationService";
+import { notifyReportFiled } from "@/lib/notificationService";
 
 export default function ListingDetail() {
   const listingId = window.location.pathname.split("/listing/")[1];
@@ -245,8 +245,6 @@ export default function ListingDetail() {
           last_message_at: new Date().toISOString(),
         });
         toast.success("Message sent!");
-        // Notify the listing owner
-        notifyNewMessage({ recipientId: listing.owner_user_id, senderName: user.full_name || user.email, messagePreview: message, conversationId: convo.id });
         setMessage("");
       }
       navigate(`/messages?id=${convo.id}`);
