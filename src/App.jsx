@@ -11,44 +11,63 @@ import { CountryProvider } from '@/lib/CountryContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AppLayout from '@/components/layout/AppLayout';
 
+// ─── Lazy loading with auto-reload on stale chunk errors ──────────────
+// When Vercel deploys a new build, old chunk files no longer exist.
+// If a cached page tries to load an old chunk, this catches the error
+// and reloads the page once to get the fresh chunks.
+function lazyWithRetry(importFn) {
+  return lazy(() =>
+    importFn().catch((err) => {
+      const hasReloaded = sessionStorage.getItem('chunk_reload');
+      if (!hasReloaded) {
+        sessionStorage.setItem('chunk_reload', '1');
+        window.location.reload();
+        return new Promise(() => {}); // Never resolves — page is reloading
+      }
+      sessionStorage.removeItem('chunk_reload');
+      throw err; // Already reloaded once, let ErrorBoundary handle it
+    })
+  );
+}
+
 // ─── Lazy-loaded pages (code splitting) ──────────────────────────────────
 // Each page is loaded on-demand, reducing initial bundle size by ~60%
-const Home = lazy(() => import('@/pages/Home'));
-const Login = lazy(() => import('@/pages/Login'));
-const SearchRooms = lazy(() => import('@/pages/SearchRooms'));
-const SearchRoommates = lazy(() => import('@/pages/SearchRoommates'));
-const SeekerDetail = lazy(() => import('@/pages/SeekerDetail'));
-const ListingDetail = lazy(() => import('@/pages/ListingDetail'));
-const CreateListing = lazy(() => import('@/pages/CreateListing'));
-const EditListing = lazy(() => import('@/pages/EditListing'));
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
-const Messages = lazy(() => import('@/pages/Messages'));
-const Profile = lazy(() => import('@/pages/Profile'));
-const Favorites = lazy(() => import('@/pages/Favorites'));
-const HowItWorks = lazy(() => import('@/pages/HowItWorks'));
-const Safety = lazy(() => import('@/pages/Safety'));
-const Pricing = lazy(() => import('@/pages/Pricing'));
-const Contact = lazy(() => import('@/pages/Contact'));
-const Terms = lazy(() => import('@/pages/Terms'));
-const Privacy = lazy(() => import('@/pages/Privacy'));
-const AcceptableUse = lazy(() => import('@/pages/AcceptableUse'));
-const Admin = lazy(() => import('@/pages/Admin'));
-const MyBookings = lazy(() => import('@/pages/MyBookings'));
-const AdminModeration = lazy(() => import('@/pages/AdminModeration'));
-const AdminEmailTest = lazy(() => import('@/pages/AdminEmailTest'));
-const CityListings = lazy(() => import('@/pages/CityListings'));
-const SeekerOnboarding = lazy(() => import('@/pages/SeekerOnboarding'));
-const SavedSearches = lazy(() => import('@/pages/SavedSearches'));
-const NotificationPreferences = lazy(() => import('@/pages/NotificationPreferences'));
-const Notifications = lazy(() => import('@/pages/Notifications'));
-const MyViewings = lazy(() => import('@/pages/MyViewings'));
-const BoostManager = lazy(() => import('@/pages/BoostManager'));
-const VerificationFlow = lazy(() => import('@/pages/VerificationFlow'));
-const AdminVerification = lazy(() => import('@/pages/AdminVerification'));
-const MyPayments = lazy(() => import('@/pages/MyPayments'));
-const OwnerPaymentSetup = lazy(() => import('@/pages/OwnerPaymentSetup'));
-const CityRoomsPage = lazy(() => import('@/pages/CityRoomsPage'));
-const PageNotFound = lazy(() => import('./lib/PageNotFound'));
+const Home = lazyWithRetry(() => import('@/pages/Home'));
+const Login = lazyWithRetry(() => import('@/pages/Login'));
+const SearchRooms = lazyWithRetry(() => import('@/pages/SearchRooms'));
+const SearchRoommates = lazyWithRetry(() => import('@/pages/SearchRoommates'));
+const SeekerDetail = lazyWithRetry(() => import('@/pages/SeekerDetail'));
+const ListingDetail = lazyWithRetry(() => import('@/pages/ListingDetail'));
+const CreateListing = lazyWithRetry(() => import('@/pages/CreateListing'));
+const EditListing = lazyWithRetry(() => import('@/pages/EditListing'));
+const Dashboard = lazyWithRetry(() => import('@/pages/Dashboard'));
+const Messages = lazyWithRetry(() => import('@/pages/Messages'));
+const Profile = lazyWithRetry(() => import('@/pages/Profile'));
+const Favorites = lazyWithRetry(() => import('@/pages/Favorites'));
+const HowItWorks = lazyWithRetry(() => import('@/pages/HowItWorks'));
+const Safety = lazyWithRetry(() => import('@/pages/Safety'));
+const Pricing = lazyWithRetry(() => import('@/pages/Pricing'));
+const Contact = lazyWithRetry(() => import('@/pages/Contact'));
+const Terms = lazyWithRetry(() => import('@/pages/Terms'));
+const Privacy = lazyWithRetry(() => import('@/pages/Privacy'));
+const AcceptableUse = lazyWithRetry(() => import('@/pages/AcceptableUse'));
+const Admin = lazyWithRetry(() => import('@/pages/Admin'));
+const MyBookings = lazyWithRetry(() => import('@/pages/MyBookings'));
+const AdminModeration = lazyWithRetry(() => import('@/pages/AdminModeration'));
+const AdminEmailTest = lazyWithRetry(() => import('@/pages/AdminEmailTest'));
+const CityListings = lazyWithRetry(() => import('@/pages/CityListings'));
+const SeekerOnboarding = lazyWithRetry(() => import('@/pages/SeekerOnboarding'));
+const SavedSearches = lazyWithRetry(() => import('@/pages/SavedSearches'));
+const NotificationPreferences = lazyWithRetry(() => import('@/pages/NotificationPreferences'));
+const Notifications = lazyWithRetry(() => import('@/pages/Notifications'));
+const MyViewings = lazyWithRetry(() => import('@/pages/MyViewings'));
+const BoostManager = lazyWithRetry(() => import('@/pages/BoostManager'));
+const VerificationFlow = lazyWithRetry(() => import('@/pages/VerificationFlow'));
+const AdminVerification = lazyWithRetry(() => import('@/pages/AdminVerification'));
+const MyPayments = lazyWithRetry(() => import('@/pages/MyPayments'));
+const OwnerPaymentSetup = lazyWithRetry(() => import('@/pages/OwnerPaymentSetup'));
+const CityRoomsPage = lazyWithRetry(() => import('@/pages/CityRoomsPage'));
+const PageNotFound = lazyWithRetry(() => import('./lib/PageNotFound'));
 
 // ─── Loading fallback ────────────────────────────────────────────────────
 const PageLoader = () => (
