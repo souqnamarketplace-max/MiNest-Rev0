@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import MobileDrawerSelect from "@/components/ui/mobile-drawer-select";
 import { useCountry } from "@/lib/CountryContext";
-import { getRegionsForCountry } from "@/lib/config";
+import { getRegionsForCountry } from "@/lib/geoHelpers";
 import { LISTING_TYPES, PROPERTY_TYPES, FURNISHING_OPTIONS, LAUNDRY_OPTIONS, FLOOR_LEVEL_OPTIONS, AC_HEATING_OPTIONS } from "@/lib/config";
 
 export default function SearchLayout({ filters, onFiltersChange, children, activeFilterCount = 0 }) {
