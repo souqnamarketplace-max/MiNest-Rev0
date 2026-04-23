@@ -523,10 +523,17 @@ export default function ListingDetail() {
               <div className="text-2xl font-bold text-accent">
                 {formatRentPrice(listing.rent_amount || listing.monthly_rent, listing.rent_period || "monthly", currency, convertPrice)}
               </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([listing.neighborhood, listing.city, listing.province_or_state, listing.country].filter(Boolean).join(", "))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-muted-foreground hover:text-accent transition-colors cursor-pointer"
+              >
                 <MapPin className="w-4 h-4" />
-                {[listing.neighborhood, listing.city, listing.province_or_state].filter(Boolean).join(", ")}
-              </div>
+                <span className="underline decoration-dotted underline-offset-2">
+                  {[listing.neighborhood, listing.city, listing.province_or_state].filter(Boolean).join(", ")}
+                </span>
+              </a>
             </div>
 
             {/* Quick Info Grid */}
