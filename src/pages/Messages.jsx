@@ -13,7 +13,7 @@ import ConversationHeader from "@/components/messages/ConversationHeader";
 import MessageThread from "@/components/messages/MessageThread";
 import MessageComposer from "@/components/messages/MessageComposer";
 import { enrichConversations } from "@/lib/conversationHelpers";
-import { notifyNewMessage, notifyReportFiled } from "@/lib/notificationService";
+import { notifyReportFiled } from "@/lib/notificationService";
 import { supabase } from "@/lib/supabase";
 import { useProfileCheck, ProfileIncompleteWarning } from "@/components/ProfileGate";
 
@@ -135,10 +135,6 @@ export default function Messages() {
     if (!messageText.trim() || !selectedId) return;
     setSending(true);
     try {
-      // Fetch current user's display name
-      const userProfiles = await entities.UserProfile.filter({ user_id: user.id });
-      const displayName = userProfiles[0]?.display_name || userProfiles[0]?.full_name || user.full_name || user.email;
-
       await entities.Message.create({
         conversation_id: selectedId,
         sender_user_id: user.id,
@@ -152,12 +148,13 @@ export default function Messages() {
 
       queryClient.invalidateQueries({ queryKey: ["messages", selectedId] });
       refetchConvos();
-      // Notify the recipient of the new message
-      const convo = conversations.find(c => c.id === selectedId);
-      const recipientId = convo?.participant_ids?.find(id => id !== user.id) || convo?.other_user_id;
-      if (recipientId) {
-        notifyNewMessage({ recipientId, senderName: displayName, messagePreview: messageText, conversationId: selectedId });
-      }
+
+      // Only send a push notification — NOT an in-app notification for every message.
+      // Standard practice: notifications for messages are handled by the push notification
+      // system (DB trigger → Edge Function → FCM). The recipient gets a push if they're
+      // not actively viewing the conversation. We don't create a notification DB row
+      // for every single chat message — that would flood the notification center.
+      // Push notifications are debounced on the server side.
     } catch (err) {
       console.error("Failed to send message:", err);
       toast.error("Failed to send message");
