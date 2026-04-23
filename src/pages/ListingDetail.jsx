@@ -554,40 +554,6 @@ export default function ListingDetail() {
             </div>
 
 
-          {/* Walk / Transit / Bike Scores */}
-          {(listing.walk_score != null || listing.transit_score != null || listing.bike_score != null) && (
-            <div className="bg-card rounded-xl border border-border p-4">
-              <h3 className="font-semibold text-foreground mb-3">Transportation Scores</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {listing.walk_score != null && (
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${listing.walk_score >= 70 ? "text-emerald-600" : listing.walk_score >= 50 ? "text-yellow-600" : "text-orange-500"}`}>
-                      {listing.walk_score}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">Walk Score</div>
-                  </div>
-                )}
-                {listing.transit_score != null && (
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${listing.transit_score >= 70 ? "text-emerald-600" : listing.transit_score >= 50 ? "text-yellow-600" : "text-orange-500"}`}>
-                      {listing.transit_score}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">Transit Score</div>
-                  </div>
-                )}
-                {listing.bike_score != null && (
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${listing.bike_score >= 70 ? "text-emerald-600" : listing.bike_score >= 50 ? "text-yellow-600" : "text-orange-500"}`}>
-                      {listing.bike_score}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">Bike Score</div>
-                  </div>
-                )}
-              </div>
-              <p className="text-[10px] text-muted-foreground/60 mt-3 text-center">Scores provided by Walk Score®</p>
-            </div>
-          )}
-
           {/* Property Details */}
           {(listing.total_bedrooms || listing.current_roommates !== null || listing.room_size_sqft || listing.laundry || listing.kitchen_access || listing.floor_level || listing.ac_heating) && (
             <div className="bg-card rounded-xl border border-border p-4">
@@ -856,6 +822,9 @@ export default function ListingDetail() {
               <p className="text-xs leading-relaxed">Your contact info stays private until you're both ready to connect.</p>
             </div>
 
+            {/* Transportation Score — Facebook Marketplace style */}
+            <TransitScoreWidget listing={listing} />
+
             {/* Rent Payment CTA (tenant) or Setup Prompt (owner) */}
             {isOwner ? (
               <div className="bg-muted/50 border border-border rounded-2xl p-4 text-center space-y-2">
@@ -1060,6 +1029,100 @@ function MoreFromHost({ listing, hostProfile }) {
           </Link>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── Transit Score Widget — Facebook Marketplace style ────────────────────────
+function TransitScoreWidget({ listing }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const hasAnyScore = listing.walk_score != null || listing.transit_score != null || listing.bike_score != null;
+  if (!hasAnyScore) return null;
+
+  // Pick the primary score to show in collapsed view
+  const primaryScore = listing.transit_score ?? listing.walk_score ?? listing.bike_score;
+  const primaryLabel = listing.transit_score != null ? "Transit Score"
+    : listing.walk_score != null ? "Walk Score" : "Bike Score";
+
+  function getScoreColor(score) {
+    if (score >= 70) return "text-emerald-600";
+    if (score >= 50) return "text-yellow-600";
+    return "text-orange-500";
+  }
+
+  function getScoreBg(score) {
+    if (score >= 70) return "bg-emerald-500";
+    if (score >= 50) return "bg-yellow-500";
+    return "bg-orange-500";
+  }
+
+  function getScoreLabel(score, type) {
+    if (type === "walk") {
+      if (score >= 90) return "Walker's Paradise";
+      if (score >= 70) return "Very Walkable";
+      if (score >= 50) return "Somewhat Walkable";
+      return "Car-Dependent";
+    }
+    if (type === "transit") {
+      if (score >= 70) return "Excellent Transit";
+      if (score >= 50) return "Good Transit";
+      if (score >= 25) return "Some Transit";
+      return "Minimal Transit";
+    }
+    if (score >= 70) return "Very Bikeable";
+    if (score >= 50) return "Bikeable";
+    return "Minimal Biking";
+  }
+
+  const scores = [
+    listing.walk_score != null && { score: listing.walk_score, label: "Walk Score", type: "walk", icon: "🚶" },
+    listing.transit_score != null && { score: listing.transit_score, label: "Transit Score", type: "transit", icon: "🚇" },
+    listing.bike_score != null && { score: listing.bike_score, label: "Bike Score", type: "bike", icon: "🚴" },
+  ].filter(Boolean);
+
+  return (
+    <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      {/* Collapsed — always visible */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${getScoreBg(primaryScore)}`}>
+            {primaryScore}
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-foreground">{primaryLabel}</div>
+            <div className="text-xs text-muted-foreground">{getScoreLabel(primaryScore, listing.transit_score != null ? "transit" : listing.walk_score != null ? "walk" : "bike")}</div>
+          </div>
+        </div>
+        <svg className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+      </button>
+
+      {/* Expanded — details */}
+      {expanded && (
+        <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+          {scores.map((s) => (
+            <div key={s.type} className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-xs ${getScoreBg(s.score)}`}>
+                {s.score}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{s.icon}</span>
+                  <span className="text-sm font-medium text-foreground">{s.label}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">{getScoreLabel(s.score, s.type)}</div>
+                {/* Progress bar */}
+                <div className="mt-1.5 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${getScoreBg(s.score)}`} style={{ width: `${s.score}%` }} />
+                </div>
+              </div>
+            </div>
+          ))}
+          <p className="text-[10px] text-muted-foreground/50 pt-1">Scores provided by Walk Score®</p>
+        </div>
+      )}
     </div>
   );
 }
