@@ -37,7 +37,7 @@ export default function Messages() {
   }, [selectedId]);
   const [sending, setSending] = useState(false);
 
-  // FIX #6: Realtime subscription for messages instead of 5s polling
+  // FIX: Realtime subscription for messages in selected conversation
   useEffect(() => {
     if (!selectedId) return;
     const channel = supabase
@@ -47,12 +47,47 @@ export default function Messages() {
         schema: 'public',
         table: 'messages',
         filter: `conversation_id=eq.${selectedId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ['messages', selectedId] });
+      }, (payload) => {
+        // Only refresh if the message is from someone else (avoid double-refresh on own send)
+        if (payload.new?.sender_user_id !== user?.id) {
+          queryClient.invalidateQueries({ queryKey: ['messages', selectedId] });
+        }
       })
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [selectedId, queryClient]);
+  }, [selectedId, queryClient, user?.id]);
+
+  // FIX: Realtime subscription for conversation list updates (new messages in ANY conversation)
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`conversations_${user.id}_${Date.now()}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+      }, (payload) => {
+        // Check if this conversation belongs to the current user
+        const pIds = payload.new?.participant_ids || payload.old?.participant_ids || [];
+        if (pIds.includes(user.id)) {
+          queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
+        }
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+      }, (payload) => {
+        // When any new message arrives, refresh conversation list to update previews
+        // Also refresh the active conversation messages if it matches
+        queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
+        if (payload.new?.conversation_id === selectedId && payload.new?.sender_user_id !== user.id) {
+          queryClient.invalidateQueries({ queryKey: ['messages', selectedId] });
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [user?.id, selectedId, queryClient]);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -68,7 +103,7 @@ export default function Messages() {
       return convos;
     },
     enabled: !!user,
-    staleTime: 30000,
+    staleTime: 5000, // 5s — conversations should feel live
   });
 
   // Enrich conversations with context
