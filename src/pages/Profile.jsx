@@ -29,14 +29,38 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
-      const profiles = await entities.UserProfile.filter({ user_id: user.id });
-      if (profiles[0]) {
-        await entities.UserProfile.update(profiles[0].id, { account_status: 'deleted' });
+      // Call the server-side delete-account Edge Function
+      // This deletes ALL user data: listings, messages, profiles, favorites, etc.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please sign in again to delete your account.");
+        setDeleting(false);
+        return;
       }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to delete account');
+      }
+
+      // Sign out locally and redirect
       await supabase.auth.signOut();
+      toast.success("Your account and all data have been permanently deleted.");
       window.location.href = '/';
     } catch (err) {
-      toast.error("Failed to delete account. Please contact support.");
+      console.error('Account deletion error:', err);
+      toast.error(err.message || "Failed to delete account. Please contact support.");
       setDeleting(false);
     }
   };
