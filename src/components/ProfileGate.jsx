@@ -17,6 +17,7 @@ export function useProfileCheck(userType = "lister") {
     queryKey: ["profile", user?.id],
     queryFn: () => entities.UserProfile.filter({ user_id: user.id }),
     enabled: !!user,
+    staleTime: 120000, // 2 min — matches Header's profile cache
   });
 
   const profile = profiles[0];

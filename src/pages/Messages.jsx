@@ -95,26 +95,16 @@ export default function Messages() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportingUserId, setReportingUserId] = useState(null);
 
-  // Fetch conversations
-  const { data: rawConversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
+  // Fetch and enrich conversations in a single query step
+  const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
     queryKey: ["conversations", user?.id],
     queryFn: async () => {
       const convos = await entities.Conversation.filter({ participant_ids: [user.id] }, '-last_message_at', 50);
-      return convos;
+      if (convos.length === 0) return [];
+      return enrichConversations(convos, user.id);
     },
     enabled: !!user,
-    staleTime: 5000, // 5s — conversations should feel live
-  });
-
-  // Enrich conversations with context
-  const { data: conversations = [] } = useQuery({
-    queryKey: ["conversations-enriched", rawConversations.length],
-    queryFn: async () => {
-      if (rawConversations.length === 0) return [];
-      return enrichConversations(rawConversations, user.id);
-    },
-    enabled: rawConversations.length > 0,
-    staleTime: 30000,
+    staleTime: 15000,
   });
 
   // Fetch messages for selected conversation

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, LayoutDashboard, Search, Users, MessageSquare } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabase";
 
@@ -12,55 +13,30 @@ export default function MobileBottomNav() {
   const navigate = useNavigate();
   const { user, navigateToLogin, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const prevPathRef = useRef(location.pathname);
 
   useEffect(() => {
     setIsLoading(false);
   }, [user]);
 
-  // Use Realtime subscription + initial fetch for unread messages (no polling)
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    // Initial fetch
-    const fetchUnread = async () => {
+  // Reuse the same queryKey as Header's unread count — shared cache, zero extra queries
+  const { data: unreadMessages = 0 } = useQuery({
+    queryKey: ['unread-conversations', user?.id],
+    queryFn: async () => {
       try {
-        const notifs = await entities.Notification.filter({ user_id: user.id, read: false, type: "new_message" });
-        setUnreadMessages(notifs?.length || 0);
-      } catch {}
-    };
-    fetchUnread();
-
-    // Subscribe to new notifications via Realtime
-    const channelName = `bottom_nav_${user.id}_${Date.now()}`;
-    let channel;
-    try {
-      channel = supabase
-        .channel(channelName)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        }, () => fetchUnread())
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        }, () => fetchUnread())
-        .subscribe();
-    } catch {}
-
-    // Fallback poll every 60s (much less frequent than before)
-    const fallbackPoll = setInterval(fetchUnread, 60000);
-
-    return () => {
-      clearInterval(fallbackPoll);
-      if (channel) supabase.removeChannel(channel).catch(() => {});
-    };
-  }, [user?.id]);
+        const convos = await entities.Conversation.filter(
+          { participant_ids: [user.id] },
+          '-last_message_at',
+          50
+        );
+        return convos.filter(c => c.last_message_sender_id && c.last_message_sender_id !== user.id).length;
+      } catch {
+        return 0;
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 30000,
+  });
 
   // Save scroll position and full path whenever location changes
   useEffect(() => {

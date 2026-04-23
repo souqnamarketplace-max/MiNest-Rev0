@@ -71,6 +71,24 @@ function makeEntity(table) {
       if (error) throw error;
       return aliasRows(data ?? []);
     },
+    // Lightweight filter — only fetches specified columns (saves bandwidth + time)
+    filterSelect: async (columns, filters = {}, sort = '-created_at', limit = 100) => {
+      let query = supabase.from(table).select(columns);
+      query = applyFilters(query, filters);
+      query = applySort(query, sort);
+      if (limit) query = query.limit(limit);
+      const { data, error } = await query;
+      if (error) throw error;
+      return aliasRows(data ?? []);
+    },
+    // Count-only query — no data transfer, just the count
+    count: async (filters = {}) => {
+      let query = supabase.from(table).select('id', { count: 'exact', head: true });
+      query = applyFilters(query, filters);
+      const { count, error } = await query;
+      if (error) throw error;
+      return count ?? 0;
+    },
     list: async (sort = '-created_at', limit = 100) => {
       let query = supabase.from(table).select('*');
       query = applySort(query, sort);

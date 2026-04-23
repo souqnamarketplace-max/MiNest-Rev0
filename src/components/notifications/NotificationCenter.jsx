@@ -21,8 +21,8 @@ export default function NotificationCenter() {
     queryKey: ["notifications", user?.id],
     queryFn: () => entities.Notification.filter({ user_id: user.id }, '-created_at', 50),
     enabled: !!user?.id,
-    staleTime: 15 * 1000,
-    refetchInterval: 30000,
+    staleTime: 60 * 1000,       // 60s — Realtime handles instant updates
+    refetchInterval: 120000,    // Fallback poll every 2 min (was 30s)
   });
 
   // Filter out chat message notifications — those belong in the conversations list, not the bell

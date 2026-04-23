@@ -17,30 +17,38 @@ export default function Header() {
   const [signInModalOpen, setSignInModalOpen] = useState(false);
   const { user, isLoadingAuth, logout, navigateToLogin } = useAuth();
 
-  // Count unread conversations (conversations with messages newer than last read)
+  // Count unread conversations — use same filter pattern as Messages page (which works)
   const { data: unreadMsgCount = 0 } = useQuery({
     queryKey: ['unread-conversations', user?.id],
     queryFn: async () => {
-      const convos = await entities.Conversation.filter({ participant_ids: [user.id] }, '-last_message_at', 50);
-      // Count conversations where the last message wasn't sent by the current user
-      const unread = convos.filter(c => c.last_message_sender_id && c.last_message_sender_id !== user.id && !c.read_by?.includes(user.id));
-      return unread.length;
+      try {
+        const convos = await entities.Conversation.filter(
+          { participant_ids: [user.id] },
+          '-last_message_at',
+          50
+        );
+        return convos.filter(c => c.last_message_sender_id && c.last_message_sender_id !== user.id).length;
+      } catch {
+        return 0;
+      }
     },
     enabled: !!user?.id,
-    staleTime: 15000,
-    refetchInterval: 30000,
+    staleTime: 30000,
+    refetchInterval: 60000,
   });
 
-  const { data: userProfile } = useQuery({
-    queryKey: ['header-profile', user?.id],
+  // Share profile queryKey with ProfileGate so it's fetched once and cached
+  // IMPORTANT: must return array — ProfileGate does profiles[0] on the cached result
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profile', user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
-      const profiles = await entities.UserProfile.filter({ user_id: user.id });
-      return profiles[0] || null;
+      if (!user?.id) return [];
+      return await entities.UserProfile.filter({ user_id: user.id });
     },
     enabled: !!user?.id,
-    staleTime: 60000,
+    staleTime: 120000,
   });
+  const userProfile = profiles[0] || null;
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
 
