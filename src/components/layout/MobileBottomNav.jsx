@@ -102,6 +102,9 @@ export default function MobileBottomNav() {
   // Hide on messages page when a conversation is open
   const searchParams = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && searchParams.has("id")) return null;
+  // Hide on listing detail and seeker detail pages — they have their own sticky CTA bar
+  if (location.pathname.startsWith("/listing/")) return null;
+  if (location.pathname.startsWith("/seeker/")) return null;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>

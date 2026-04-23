@@ -869,6 +869,7 @@ export default function ListingDetail() {
         user={user}
         onMessage={() => handleContact(true)}
         onBook={listing.rent_period === "daily" ? handleBookingClick : undefined}
+        onViewing={listing.viewing_enabled ? handleScheduleViewingClick : undefined}
         onFavorite={handleFavorite}
         isFavorited={isFavorited}
         isOwner={isOwner}
