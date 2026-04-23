@@ -27,7 +27,7 @@ export default function SearchRooms() {
 
   const [filters, setFilters] = useState({
     city: urlParams.get("city") || "",
-    country: urlParams.get("country") || storedCountry || "",
+    country: hostFilter ? "" : (urlParams.get("country") || storedCountry || ""),
     sort: "-created_at",
   });
 
