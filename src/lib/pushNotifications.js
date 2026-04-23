@@ -53,25 +53,12 @@ async function initFirebase() {
 
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
+    const { getMessaging } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
 
     const app = initializeApp(FIREBASE_CONFIG);
     
-    // Register service worker
+    // Register service worker (config is hardcoded in the SW file)
     swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    
-    // Send config to service worker so it can initialize Firebase
-    if (swRegistration.active) {
-      swRegistration.active.postMessage({ type: 'FIREBASE_CONFIG', config: FIREBASE_CONFIG });
-    }
-    swRegistration.addEventListener('updatefound', () => {
-      const newWorker = swRegistration.installing;
-      newWorker?.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated') {
-          newWorker.postMessage({ type: 'FIREBASE_CONFIG', config: FIREBASE_CONFIG });
-        }
-      });
-    });
 
     messaging = getMessaging(app);
     return messaging;
