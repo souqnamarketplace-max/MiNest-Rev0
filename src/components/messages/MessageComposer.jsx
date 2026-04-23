@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useRef } from "react";
 import { Send } from "lucide-react";
 
 export default function MessageComposer({
@@ -13,8 +12,8 @@ export default function MessageComposer({
 
   const placeholder =
     sourceType === "listing"
-      ? "Ask about rent, utilities, move-in, parking, or house rules…"
-      : "Introduce yourself and ask about budget, lifestyle, move-in date…";
+      ? "Type a message..."
+      : "Type a message...";
 
   const handleChange = (e) => {
     setMessage(e.target.value);
@@ -40,28 +39,36 @@ export default function MessageComposer({
     }
   };
 
+  const canSend = message.trim().length > 0 && !disabled && !isLoading;
+
   return (
-    <div className="flex-shrink-0 bg-card border-t border-border p-3 sm:p-4 safe-area-bottom">
+    <div className="flex-shrink-0 bg-card/95 backdrop-blur-sm border-t border-border/60 px-3 sm:px-4 py-3 safe-area-bottom">
       <div className="flex gap-2 items-end max-w-full">
-        <textarea
-          ref={textareaRef}
-          value={message}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled || isLoading}
-          className="flex-1 min-w-0 px-4 py-3 border border-border rounded-xl text-base resize-none focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50 bg-muted/30"
-          rows={1}
-          style={{ minHeight: "48px", maxHeight: "120px" }}
-        />
-        <Button
+        <div className="flex-1 min-w-0 relative">
+          <textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled || isLoading}
+            className="w-full px-4 py-2.5 border border-border/60 rounded-2xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 disabled:opacity-50 bg-muted/20 placeholder:text-muted-foreground/50 transition-all"
+            rows={1}
+            style={{ minHeight: "42px", maxHeight: "120px" }}
+          />
+        </div>
+
+        <button
           onClick={handleSend}
-          disabled={!message.trim() || disabled || isLoading}
-          className="bg-accent hover:bg-accent/90 text-accent-foreground flex-shrink-0 h-12 w-12 rounded-xl"
-          size="icon"
+          disabled={!canSend}
+          className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+            canSend
+              ? "bg-accent text-accent-foreground shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+              : "bg-muted text-muted-foreground/40 cursor-not-allowed"
+          }`}
         >
-          <Send className="w-5 h-5" />
-        </Button>
+          <Send className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
