@@ -164,6 +164,28 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
   useEffect(() => {
     if (!map) return;
 
+    // Safety wrapper — Leaflet throws if map container isn't sized yet
+    const safeFlyTo = (coords, zoom, opts) => {
+      try {
+        if (!coords || !Array.isArray(coords) || coords.length < 2) return;
+        if (!isFinite(coords[0]) || !isFinite(coords[1])) return;
+        if (!map.getContainer()?.offsetWidth) return; // map not sized yet
+        map.flyTo(coords, zoom, opts);
+      } catch (e) {
+        console.warn('MapView flyTo error:', e.message);
+      }
+    };
+    const safeFitBounds = (bounds, opts) => {
+      try {
+        if (!bounds || !Array.isArray(bounds) || bounds.length < 1) return;
+        if (!bounds.every(b => Array.isArray(b) && b.length >= 2 && isFinite(b[0]) && isFinite(b[1]))) return;
+        if (!map.getContainer()?.offsetWidth) return;
+        map.fitBounds(bounds, opts);
+      } catch (e) {
+        console.warn('MapView fitBounds error:', e.message);
+      }
+    };
+
     const geocodeAndFly = async (query, zoom) => {
       try {
         const res = await fetch(
@@ -174,13 +196,13 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
           if (data[0].boundingbox) {
             const [s, n, w, e] = data[0].boundingbox.map(parseFloat);
             if ([s, n, w, e].every(v => isFinite(v))) {
-              map.fitBounds([[s, w], [n, e]], { padding: [30, 30], maxZoom: zoom });
+              safeFitBounds([[s, w], [n, e]], { padding: [30, 30], maxZoom: zoom });
             }
           } else {
             const lat = parseFloat(data[0].lat);
             const lon = parseFloat(data[0].lon);
             if (isFinite(lat) && isFinite(lon)) {
-              map.flyTo([lat, lon], zoom, { animate: true, duration: 1 });
+              safeFlyTo([lat, lon], zoom, { animate: true, duration: 1 });
             }
           }
         }
@@ -195,20 +217,20 @@ function MapController({ filters, resolvedListings, onBoundsChange, onZoomChange
     } else if (filters?.province_or_state) {
       geocodeAndFly(`${filters.province_or_state}, ${filters.country || 'Canada'}`, 7);
     } else if (filters?.country === 'United States') {
-      map.flyTo([39.5, -98.35], 4, { animate: true, duration: 1 });
+      safeFlyTo([39.5, -98.35], 4, { animate: true, duration: 1 });
     } else if (resolvedListings.length > 0) {
       const bounds = resolvedListings
         .filter(l => typeof l._lat === 'number' && isFinite(l._lat) && typeof l._lng === 'number' && isFinite(l._lng))
         .map(l => [l._lat, l._lng]);
-      if (bounds.length === 1 && isFinite(bounds[0][0]) && isFinite(bounds[0][1])) {
-        map.flyTo(bounds[0], 13, { animate: true, duration: 1 });
-      } else if (bounds.length > 1 && bounds.every(b => isFinite(b[0]) && isFinite(b[1]))) {
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      if (bounds.length === 1) {
+        safeFlyTo(bounds[0], 13, { animate: true, duration: 1 });
+      } else if (bounds.length > 1) {
+        safeFitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
       } else {
-        map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
+        safeFlyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
       }
     } else {
-      map.flyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
+      safeFlyTo([56.1304, -106.3468], 4, { animate: true, duration: 1 });
     }
   }, [filters?.city, filters?.province_or_state, filters?.country, resolvedListings.length]);
 
