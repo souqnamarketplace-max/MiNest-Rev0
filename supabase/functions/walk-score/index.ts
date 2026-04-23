@@ -1,6 +1,5 @@
 // Supabase Edge Function: walk-score
-// Deploy: supabase functions deploy walk-score
-// URL: https://qqrefnvhxggrovziogfj.supabase.co/functions/v1/walk-score
+// Deploy: supabase functions deploy walk-score --no-verify-jwt --project-ref qqrefnvhxggrovziogfj
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
 
     if (wsData.status !== 1) {
       return new Response(
-        JSON.stringify({ error: "Walk Score API error", status: wsData.status, description: wsData.description }),
+        JSON.stringify({ error: "Walk Score API error", status: wsData.status }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -53,12 +52,9 @@ Deno.serve(async (req) => {
       walk_score: wsData.walkscore ?? null,
       transit_score: wsData.transit?.score ?? null,
       bike_score: wsData.bike?.score ?? null,
-      walk_description: wsData.description ?? null,
-      transit_description: wsData.transit?.description ?? null,
-      bike_description: wsData.bike?.description ?? null,
     };
 
-    // If listing_id is provided, save scores to DB
+    // If listing_id provided, save to DB using service role
     if (listing_id) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");

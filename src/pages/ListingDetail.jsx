@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/lib/supabase';
 import { entities, invokeFunction } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
@@ -44,6 +44,7 @@ export default function ListingDetail() {
   const currency = getCurrencyByCountry(country);
   const navigate = useNavigate();
   const triggerHaptic = useHaptic();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -815,7 +816,7 @@ export default function ListingDetail() {
                 onClick={async () => {
                   if (!window.confirm("Mark this listing as rented? It will be hidden from search after 7 days.")) return;
                   await entities.Listing.update(listing.id, { status: "rented" });
-                  queryClient.invalidateQueries({ queryKey: ["listing", id] });
+                  queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
                   toast.success("Listing marked as rented. It will auto-archive in 7 days.");
                 }}
               >
@@ -832,7 +833,7 @@ export default function ListingDetail() {
                   className="w-full text-sm gap-2"
                   onClick={async () => {
                     await entities.Listing.update(listing.id, { status: "active" });
-                    queryClient.invalidateQueries({ queryKey: ["listing", id] });
+                    queryClient.invalidateQueries({ queryKey: ["listing", listingId] });
                     toast.success("Listing re-activated and visible in search.");
                   }}
                 >
