@@ -14,9 +14,9 @@ export async function enrichConversations(rawConversations, currentUserId) {
   }
 
   // Fetch all profiles and listings in parallel — 2 queries total instead of N
-  // FIX: added owner_user_id + rent_amount + country + other fields so the
-  // conversation header's isOwner check works and the rental offer modal
-  // can pre-fill from the listing without a second fetch.
+  // IMPORTANT: only request columns that actually exist on public.listings.
+  // Previously had 'unit_number', 'address', 'parking_included' which don't exist —
+  // PostgREST rejected the whole SELECT, breaking conversation enrichment.
   const [profilesResult, listingsResult] = await Promise.all([
     otherUserIds.size > 0
       ? supabase
@@ -27,7 +27,7 @@ export async function enrichConversations(rawConversations, currentUserId) {
     listingIds.size > 0
       ? supabase
           .from('listings')
-          .select('id, title, city, province_or_state, country, owner_user_id, rent_amount, pets_allowed, parking_included, listing_type, unit_number, address')
+          .select('id, title, city, province_or_state, country, owner_user_id, rent_amount, pets_allowed, parking_type, listing_type, street_address')
           .in('id', [...listingIds])
       : { data: [] },
   ]);
@@ -59,8 +59,7 @@ export async function enrichConversations(rawConversations, currentUserId) {
       other_user_verified: (profile?.verification_badges || []).length > 0,
       // NEW: expose listing owner so ConversationHeader's isOwner check can work.
       listing_owner_id: listing?.owner_user_id || null,
-      // NEW: expose the full listing object so RentalOfferModal can pre-fill
-      // without a second fetch.
+      // NEW: expose the full listing object so RentalOfferModal can pre-fill.
       listing: listing || null,
     };
 
