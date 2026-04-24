@@ -17,7 +17,18 @@ export default function AdminUsers() {
   const { user, isLoadingAuth, navigateToLogin } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
+  const PAGE_SIZE = 50;
+
+  // Debounce search so we don't hammer the DB on every keystroke
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  React.useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   const { data: adminProfile } = useQuery({
     queryKey: ["admin-check", user?.id],
@@ -29,23 +40,33 @@ export default function AdminUsers() {
     enabled: !!user?.id,
   });
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["admin-users", search],
+  // Server-side paginated query — works with 3 users or 3 million
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["admin-users", page, debouncedSearch],
     queryFn: async () => {
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       let q = supabase
         .from("user_profiles")
-        .select("user_id, email, display_name, country, city, is_admin, display_id, created_at")
+        .select("user_id, email, display_name, country, city, is_admin, display_id, created_at", { count: "exact" })
         .order("created_at", { ascending: false })
-        .limit(500);
-      if (search.trim()) {
-        q = q.or(`email.ilike.%${search}%,display_name.ilike.%${search}%,display_id.ilike.%${search}%`);
+        .range(from, to);
+
+      if (debouncedSearch) {
+        q = q.or(`email.ilike.%${debouncedSearch}%,display_name.ilike.%${debouncedSearch}%,display_id.ilike.%${debouncedSearch}%`);
       }
-      const { data, error } = await q;
+      const { data, error, count } = await q;
       if (error) throw error;
-      return data || [];
+      return { rows: data || [], total: count || 0 };
     },
     enabled: !!adminProfile?.is_admin,
+    placeholderData: (prev) => prev,
   });
+
+  const users = data?.rows || [];
+  const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   React.useEffect(() => {
     if (!isLoadingAuth && !user) navigateToLogin(window.location.href);
@@ -170,8 +191,23 @@ export default function AdminUsers() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center mt-6">
-        Showing up to 500 users. Note: impersonation is view-only and logged to the audit log.
+      {/* Pagination + summary */}
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs text-muted-foreground">
+          {total.toLocaleString()} {total === 1 ? "user" : "users"}
+          {totalPages > 1 && <span className="ml-1">· Page {page} of {totalPages.toLocaleString()}</span>}
+          {isFetching && !isLoading && <span className="ml-2 text-accent">Updating…</span>}
+        </p>
+        {totalPages > 1 && (
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="h-8">Previous</Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="h-8">Next</Button>
+          </div>
+        )}
+      </div>
+
+      <p className="text-[10px] text-muted-foreground text-center mt-4">
+        Impersonation is view-only and logged to the audit log.
       </p>
     </div>
   );

@@ -193,29 +193,88 @@ function ModerationTab() {
 }
 
 // ── Listings Tab ──────────────────────────────────────────────────────────────
+//
+// Uses SERVER-SIDE pagination, search, and filters via Supabase range() queries.
+// Only fetches one page (50 rows) at a time regardless of total listing count.
+// Scales to 100k+ listings without degrading performance.
+//
 function ListingsTab({ onEdit }) {
   const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [countryFilter, setCountryFilter] = React.useState("all");
   const [page, setPage] = React.useState(1);
   const PAGE_SIZE = 50;
 
-  const { data: listings = [], isLoading, refetch } = useQuery({
-    queryKey: ["admin-all-listings"],
-    queryFn: () => entities.Listing.list("-created_at", 5000),
+  // Debounce search input so we don't hit the DB on every keystroke
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to page 1 when any filter changes
+  React.useEffect(() => { setPage(1); }, [debouncedSearch, statusFilter, countryFilter]);
+
+  // Fetch one page of listings from the server, with filters applied SERVER-side
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["admin-listings-page", page, debouncedSearch, statusFilter, countryFilter],
+    queryFn: async () => {
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      let q = supabase
+        .from("listings")
+        .select("id, display_id, title, slug, status, city, province_or_state, country, rent_amount, cover_photo_url, owner_user_id", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      // Apply filters on the server
+      if (statusFilter !== "all") q = q.eq("status", statusFilter);
+      if (countryFilter !== "all") q = q.eq("country", countryFilter);
+
+      if (debouncedSearch) {
+        const s = debouncedSearch;
+        // ilike works for partial matches on text columns
+        q = q.or(`title.ilike.%${s}%,city.ilike.%${s}%,slug.ilike.%${s}%,display_id.ilike.%${s}%,id.ilike.%${s}%`);
+      }
+
+      const { data, error, count } = await q;
+      if (error) throw error;
+      return { rows: data || [], total: count || 0 };
+    },
+    placeholderData: (prev) => prev, // keep old data visible while fetching new page
   });
 
-  // Reset to page 1 when filters change
-  React.useEffect(() => { setPage(1); }, [search, statusFilter, countryFilter]);
+  // Fetch aggregate counts for the status filter dropdown labels (quick, cached separately)
+  const { data: statusCounts = {} } = useQuery({
+    queryKey: ["admin-listings-status-counts", countryFilter],
+    queryFn: async () => {
+      const counts = { all: 0 };
+      const statuses = ["active", "pending_review", "paused", "rejected", "rented", "draft", "flagged"];
+      // One count() query per status + one for total
+      const base = () => {
+        let q = supabase.from("listings").select("*", { count: "exact", head: true });
+        if (countryFilter !== "all") q = q.eq("country", countryFilter);
+        return q;
+      };
+      const [totalRes, ...rest] = await Promise.all([
+        base(),
+        ...statuses.map((s) => base().eq("status", s)),
+      ]);
+      counts.all = totalRes.count || 0;
+      statuses.forEach((s, i) => { counts[s] = rest[i].count || 0; });
+      return counts;
+    },
+    staleTime: 60_000,
+  });
 
-  const handleStatus = async (id, status) => {
-    const listing = listings.find(l => l.id === id);
-    await entities.Listing.update(id, { status });
-    toast.success(`Listing ${status}`);
-    if (listing?.owner_user_id) {
-      if (status === "active") {
+  const handleStatus = async (listing, newStatus) => {
+    await entities.Listing.update(listing.id, { status: newStatus });
+    toast.success(`Listing ${newStatus}`);
+    if (listing.owner_user_id) {
+      if (newStatus === "active") {
         notifyListingApproved({ ownerId: listing.owner_user_id, listingTitle: listing.title, listingSlug: listing.slug || listing.id });
-      } else if (status === "rejected") {
+      } else if (newStatus === "rejected") {
         notifyListingRejected({ ownerId: listing.owner_user_id, listingTitle: listing.title });
       }
     }
@@ -243,36 +302,9 @@ function ListingsTab({ onEdit }) {
     flagged: "bg-red-100 text-red-700",
   };
 
-  // Apply filters
-  const filtered = React.useMemo(() => {
-    return listings.filter(l => {
-      if (statusFilter !== "all" && l.status !== statusFilter) return false;
-      if (countryFilter !== "all" && l.country !== countryFilter) return false;
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        const matches =
-          l.title?.toLowerCase().includes(q) ||
-          l.city?.toLowerCase().includes(q) ||
-          l.slug?.toLowerCase().includes(q) ||
-          l.display_id?.toLowerCase().includes(q) ||
-          l.id?.toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-      return true;
-    });
-  }, [listings, search, statusFilter, countryFilter]);
-
-  // Status counts for filter dropdown labels
-  const statusCounts = React.useMemo(() => {
-    const counts = { all: listings.length };
-    for (const l of listings) counts[l.status] = (counts[l.status] || 0) + 1;
-    return counts;
-  }, [listings]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  if (isLoading) return <div className="h-40 bg-muted rounded-lg animate-pulse" />;
+  const rows = data?.rows || [];
+  const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="space-y-3">
@@ -317,9 +349,13 @@ function ListingsTab({ onEdit }) {
       {/* Summary */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {filtered.length} {filtered.length === 1 ? "listing" : "listings"}
-          {filtered.length !== listings.length && ` (of ${listings.length})`}
-          {totalPages > 1 && <span className="ml-1">· Page {page} of {totalPages}</span>}
+          {isLoading ? "Loading..." : (
+            <>
+              {total.toLocaleString()} {total === 1 ? "listing" : "listings"}
+              {totalPages > 1 && <span className="ml-1">· Page {page} of {totalPages.toLocaleString()}</span>}
+              {isFetching && !isLoading && <span className="ml-2 text-accent">Updating…</span>}
+            </>
+          )}
         </p>
         {totalPages > 1 && (
           <div className="flex gap-1">
@@ -334,13 +370,17 @@ function ListingsTab({ onEdit }) {
       </div>
 
       {/* List */}
-      {pageItems.length === 0 ? (
+      {isLoading ? (
+        <div className="space-y-2">
+          {[0, 1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-muted/50 rounded-xl animate-pulse" />)}
+        </div>
+      ) : rows.length === 0 ? (
         <div className="text-center py-12 bg-muted/30 rounded-xl">
           <Home className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No listings match these filters.</p>
         </div>
       ) : (
-        pageItems.map(l => (
+        rows.map(l => (
           <div key={l.id} className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">
             <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
               {l.cover_photo_url && <img src={l.cover_photo_url} alt="" className="w-full h-full object-cover" />}
@@ -374,11 +414,11 @@ function ListingsTab({ onEdit }) {
                 <Eye className="w-3.5 h-3.5" />
               </Button>
               <Button size="sm" variant="ghost" aria-label="Toggle pause" title={l.status === "active" ? "Pause" : "Activate"}
-                onClick={() => handleStatus(l.id, l.status === "active" ? "paused" : "active")}>
+                onClick={() => handleStatus(l, l.status === "active" ? "paused" : "active")}>
                 {l.status === "active" ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
               </Button>
               {l.status === "pending_review" && (
-                <Button size="sm" variant="ghost" className="text-green-600" title="Approve" onClick={() => handleStatus(l.id, "active")}>
+                <Button size="sm" variant="ghost" className="text-green-600" title="Approve" onClick={() => handleStatus(l, "active")}>
                   <Check className="w-3.5 h-3.5" />
                 </Button>
               )}
@@ -391,9 +431,9 @@ function ListingsTab({ onEdit }) {
       )}
 
       {/* Bottom pagination */}
-      {totalPages > 1 && pageItems.length > 0 && (
+      {totalPages > 1 && rows.length > 0 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-xs text-muted-foreground">Page {page} of {totalPages}</p>
+          <p className="text-xs text-muted-foreground">Page {page} of {totalPages.toLocaleString()}</p>
           <div className="flex gap-1">
             <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
             <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
