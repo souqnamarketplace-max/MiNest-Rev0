@@ -472,6 +472,7 @@ export default function SearchRooms() {
 
           {/* Listings */}
           {isLoading ? (
+            <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-muted border-t-accent rounded-full animate-spin" /></div>
           ) : listings.length === 0 ? (
             <div className="text-center py-16">
               <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
