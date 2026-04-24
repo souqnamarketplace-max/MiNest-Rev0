@@ -79,7 +79,7 @@ export async function exportListings() {
 export async function exportUsers() {
   const cols = [
     "user_id", "email", "display_name", "country", "city",
-    "phone_verified", "email_verified", "is_admin",
+    "is_admin",
     "created_at", "updated_at",
   ];
   const { data, error } = await supabase

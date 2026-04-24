@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertTriangle, Users, Download, Loader2, ArrowLeft, Search, Eye, CheckCircle2,
+  AlertTriangle, Users, Download, Loader2, ArrowLeft, Search, Eye,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { startImpersonation } from "@/lib/impersonation";
@@ -34,7 +34,7 @@ export default function AdminUsers() {
     queryFn: async () => {
       let q = supabase
         .from("user_profiles")
-        .select("user_id, email, display_name, country, city, is_admin, email_verified, phone_verified, created_at")
+        .select("user_id, email, display_name, country, city, is_admin, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
       if (search.trim()) {
@@ -137,8 +137,6 @@ export default function AdminUsers() {
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="text-sm font-semibold">{u.display_name || "(no name)"}</p>
                     {u.is_admin && <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">Admin</Badge>}
-                    {u.email_verified && <Badge variant="outline" className="text-[10px]"><CheckCircle2 className="w-2.5 h-2.5 mr-0.5 text-blue-600" /> Email</Badge>}
-                    {u.phone_verified && <Badge variant="outline" className="text-[10px]"><CheckCircle2 className="w-2.5 h-2.5 mr-0.5 text-blue-600" /> Phone</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground font-mono truncate">{u.email}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
