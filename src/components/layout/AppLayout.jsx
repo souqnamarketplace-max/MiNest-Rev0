@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/AuthContext";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import NotifToast from "@/components/notifications/NotifToast";
 import PushNotificationPrompt from "@/components/notifications/PushNotificationPrompt";
+import ImpersonationBanner from "@/components/admin/ImpersonationBanner";
 
 export default function AppLayout() {
   const { user, isLoadingAuth, navigateToLogin, logout } = useAuth();
@@ -41,6 +42,7 @@ export default function AppLayout() {
           />
         </div>
       )}
+      <ImpersonationBanner />
       <Header />
       <main className="flex-1">
         {!isLoadingAuth ? <Outlet /> : (

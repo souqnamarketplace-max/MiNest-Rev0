@@ -6,15 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertCircle, Shield, FileText, Filter, RefreshCw
+  AlertCircle, Shield, FileText, Filter, RefreshCw, Download, Loader2
 } from "lucide-react";
+import { toast } from "sonner";
 import ListingModerationCard from "@/components/admin/ListingModerationCard";
+import BulkActionsBar, { SelectableRow } from "@/components/admin/BulkActionsBar";
+import { exportListings } from "@/lib/adminExports";
 
 export default function AdminModeration() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("pending");
   const [filter, setFilter] = useState("");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [exporting, setExporting] = useState(false);
 
   const { data: adminProfile } = useQuery({
     queryKey: ['admin-profile-check', user?.id],
@@ -105,13 +110,31 @@ export default function AdminModeration() {
             </h1>
             <p className="text-muted-foreground mt-1">Review and manage MiNest listings, reports, and users</p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => refetch()}
-            className="gap-2"
-          >
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  const n = await exportListings();
+                  toast.success(`Exported ${n} listings`);
+                } catch (err) { toast.error(err.message); }
+                finally { setExporting(false); }
+              }}
+              disabled={exporting}
+              className="gap-2"
+            >
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              className="gap-2"
+            >
+              <RefreshCw className="w-4 h-4" /> Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Metrics */}
@@ -160,11 +183,17 @@ export default function AdminModeration() {
               ) : (
                 <div className="space-y-3">
                   {filteredListings.map(listing => (
-                    <ListingModerationCard
+                    <SelectableRow
                       key={listing.id}
-                      listing={listing}
-                      onActionComplete={handleActionComplete}
-                    />
+                      id={listing.id}
+                      selectedIds={selectedIds}
+                      setSelectedIds={setSelectedIds}
+                    >
+                      <ListingModerationCard
+                        listing={listing}
+                        onActionComplete={handleActionComplete}
+                      />
+                    </SelectableRow>
                   ))}
                 </div>
               )}
@@ -227,6 +256,14 @@ export default function AdminModeration() {
           </TabsContent>
         </Tabs>
       </div>
+      <BulkActionsBar
+        selectedIds={selectedIds}
+        onClear={() => setSelectedIds(new Set())}
+        onComplete={() => {
+          setSelectedIds(new Set());
+          handleActionComplete();
+        }}
+      />
     </div>
   );
 }

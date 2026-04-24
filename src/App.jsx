@@ -64,6 +64,9 @@ const MyViewings = lazyWithRetry(() => import('@/pages/MyViewings'));
 const BoostManager = lazyWithRetry(() => import('@/pages/BoostManager'));
 const VerificationFlow = lazyWithRetry(() => import('@/pages/VerificationFlow'));
 const AdminVerification = lazyWithRetry(() => import('@/pages/AdminVerification'));
+const AuditLog = lazyWithRetry(() => import('@/pages/AuditLog'));
+const FraudSignals = lazyWithRetry(() => import('@/pages/FraudSignals'));
+const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'));
 const MyPayments = lazyWithRetry(() => import('@/pages/MyPayments'));
 const OwnerPaymentSetup = lazyWithRetry(() => import('@/pages/OwnerPaymentSetup'));
 const CityRoomsPage = lazyWithRetry(() => import('@/pages/CityRoomsPage'));
@@ -147,6 +150,9 @@ function AnimatedRoutes() {
               <Route path="/admin/email-test" element={<ProtectedRoute><AdminEmailTest /></ProtectedRoute>} />
               <Route path="/admin/moderation" element={<ProtectedRoute><AdminModeration /></ProtectedRoute>} />
               <Route path="/admin/verification" element={<ProtectedRoute><AdminVerification /></ProtectedRoute>} />
+              <Route path="/admin/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+              <Route path="/admin/fraud-signals" element={<ProtectedRoute><FraudSignals /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
               <Route path="*" element={<PageNotFound />} />
             </Route>
           </Routes>

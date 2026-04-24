@@ -101,6 +101,9 @@ export default function Admin() {
           <TabsTrigger value="support"><MessageSquare className="w-3.5 h-3.5 mr-1" />Support</TabsTrigger>
           <TabsTrigger value="legal"><FileText className="w-3.5 h-3.5 mr-1" />Legal</TabsTrigger>
           <a href="/admin/email-test" className="px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 rounded-lg flex items-center gap-1"><Mail className="w-3.5 h-3.5" />Test Emails</a>
+          <a href="/admin/audit-log" className="px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 rounded-lg flex items-center gap-1"><Shield className="w-3.5 h-3.5" />Audit Log</a>
+          <a href="/admin/fraud-signals" className="px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 rounded-lg flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" />Fraud</a>
+          <a href="/admin/users" className="px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 rounded-lg flex items-center gap-1"><Users className="w-3.5 h-3.5" />Users</a>
         </TabsList>
 
         {/* MODERATION TAB */}
