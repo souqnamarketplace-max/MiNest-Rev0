@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar, MapPin, DollarSign, ArrowRight } from "lucide-react";
-import { formatCurrency } from "@/lib/geoHelpers";
 import { useCountry } from "@/lib/CountryContext";
 import { getCurrencyByCountry } from "@/lib/pricingHelpers";
 
@@ -86,7 +85,7 @@ export default function MyViewingsList() {
             return (
               <Link
                 key={appt.id}
-                to={`/listing/${listingsMap[appt.listing_id]?.slug || appt.listing_id}`}
+                to={`/listing/${listingMap[appt.listing_id]?.slug || appt.listing_id}`}
                 className="block bg-card rounded-xl border border-border p-4 hover:border-accent/30 transition-all"
               >
                 <div className="flex items-start gap-4">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { entities, uploadFile, invokeFunction, invokeLLM } from '@/api/entities';
+import { entities, uploadFile, invokeLLM } from '@/api/entities';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, Save, LogOut, Loader2, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { getRegionsForCountry, getAvatarFallback } from "@/lib/geoHelpers";
-import { isProfileComplete, getMissingFields, formatFieldName } from "@/lib/profileValidation";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { normalizeProvince, validatePostalMatchesRegion } from "@/lib/addressValidation";
 import { compressImage } from "@/lib/imageCompression";

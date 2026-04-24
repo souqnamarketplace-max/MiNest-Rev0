@@ -3,7 +3,7 @@
  * Each payment date is calculated from lease_start_date + interval cycle.
  */
 import React, { useMemo, useState } from "react";
-import { formatCents, getIntervalLabel } from "@/lib/paymentHelpers";
+import { formatCents } from "@/lib/paymentHelpers";
 import { format, addMonths, addWeeks, addYears, isBefore, isAfter, isSameDay } from "date-fns";
 import { Calendar, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

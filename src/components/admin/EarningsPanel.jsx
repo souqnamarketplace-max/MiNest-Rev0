@@ -4,7 +4,6 @@ import { entities } from '@/api/entities';
 import { DollarSign, TrendingUp, Zap, CreditCard, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/geoHelpers";
 
 function StatCard({ label, value, sub, icon: Icon, accent }) {
   return (

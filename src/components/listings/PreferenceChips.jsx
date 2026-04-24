@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Users, Cigarette, Heart, PawPrint, Sparkles, Volume2, Home } from "lucide-react";
+import { Users, Cigarette, Heart, PawPrint, Sparkles, Volume2 } from "lucide-react";
 
 const preferenceConfig = {
   gender_preference: { icon: Users, label: "Gender Preference" },

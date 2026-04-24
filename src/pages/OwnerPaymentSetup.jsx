@@ -4,7 +4,7 @@
  */
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ConnectAccountBanner from "@/components/payments/ConnectAccountBanner";
 import PaymentPlanSetup from "@/components/payments/PaymentPlanSetup";
-import { formatCents, getSubscriptionStatusConfig } from "@/lib/paymentHelpers";
+import { formatCents } from "@/lib/paymentHelpers";
 import { CreditCard, Settings, CheckCircle2, XCircle, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";

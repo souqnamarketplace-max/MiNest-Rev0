@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { entities } from '@/api/entities';
 import { Loader2, DollarSign, Info } from "lucide-react";
 import { toast } from "sonner";
-import { formatCents } from "@/lib/paymentHelpers";
 
 export default function PaymentPlanSetup({ listing, existingPlan, onSuccess }) {
   const [amount, setAmount] = useState(existingPlan ? (existingPlan.amount / 100).toString() : (listing?.rent_amount || "").toString());

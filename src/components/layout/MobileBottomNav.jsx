@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Home, LayoutDashboard, Search, Users, MessageSquare } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { entities } from "@/api/entities";
-import { supabase } from "@/lib/supabase";
 
 import { saveScrollPosition, getScrollPosition, saveTabPath, getTabPath } from "@/lib/navScrollCache";
 

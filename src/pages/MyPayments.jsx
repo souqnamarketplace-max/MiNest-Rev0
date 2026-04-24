@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";

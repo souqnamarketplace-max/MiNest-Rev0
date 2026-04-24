@@ -1,10 +1,12 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/AuthContext";
 
 import { LogIn } from "lucide-react";
 
 export default function SignInRequiredModal({ open, onOpenChange, title, description, listingId, action }) {
+  const { navigateToLogin } = useAuth();
   const handleSignIn = () => {
     const returnUrl = `${window.location.origin}/listing/${listingId}?action=${action}&source=signin`;
     navigateToLogin(returnUrl);

@@ -3,12 +3,11 @@
  */
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCents, getSubscriptionStatusConfig, getTransactionStatusConfig, DISPUTE_STATUS_CONFIG } from "@/lib/paymentHelpers";
 import { DollarSign, Users, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";

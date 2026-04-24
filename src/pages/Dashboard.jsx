@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Eye, MessageSquare, Settings, MoreHorizontal, Pause, Pencil, Trash2, Zap, Search, UserCircle, CreditCard, TrendingUp, DollarSign, AlertTriangle, FileText , Shield} from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/geoHelpers";
 import { getCurrencyByCountry, formatRentPrice } from "@/lib/pricingHelpers";
 import { useCountry } from "@/lib/CountryContext";
 import {
@@ -182,7 +181,7 @@ export default function Dashboard() {
     const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     await entities.Listing.update(listing.id, { status: 'active', expires_at: newExpiry });
     toast.success("Listing renewed for 30 days!");
-    refetchListings();
+    refetch();
   };
 
   const handleStatusChange = async (listing, newStatus) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { getNotifIconConfig } from "@/lib/notificationIcons";
 import { Button } from "@/components/ui/button";

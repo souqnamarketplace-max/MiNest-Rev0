@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from '@/lib/supabase';
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  MapPin, Calendar, DollarSign, Bed, Bath, Car, Wifi, Heart, ShieldCheck, Sparkles, Users, MessageSquare, ArrowLeft, Flag, Home, Cigarette, PawPrint, GraduationCap, Share2, FileText, X, Clock, AlertCircle, Edit, CreditCard, Grid3x3
+  MapPin, Calendar, DollarSign, Bed, Bath, Car, Wifi, Heart, ShieldCheck, Sparkles, Users, MessageSquare, ArrowLeft, Flag, Home, Cigarette, PawPrint, GraduationCap, FileText, Clock, Edit, CreditCard, Grid3x3
 } from "lucide-react";
 import { getParkingDetailDisplay, getParkingLabel } from "@/lib/parkingHelpers";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatDate, getDisplayName } from "@/lib/geoHelpers";
+import { formatDate } from "@/lib/geoHelpers";
 import { formatRentPrice, getCurrencyByCountry } from "@/lib/pricingHelpers";
 import { useCountry } from "@/lib/CountryContext";
 import { useHaptic, HapticPatterns } from "@/lib/hapticFeedback";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import HostCard from "@/components/listings/HostCard";
 import TrustBadges from "@/components/listings/TrustBadges";

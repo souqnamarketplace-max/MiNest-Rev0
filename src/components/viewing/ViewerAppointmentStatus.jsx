@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { entities } from '@/api/entities';
 import { format } from "date-fns";
-import { CheckCircle2, XCircle, Clock, MessageSquare } from "lucide-react";
+import { CheckCircle2, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 const statusConfig = {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { isHapticEnabled, setHapticEnabled, triggerHaptic, HapticPatterns } from "@/lib/hapticFeedback";
-import { Smartphone, Zap } from "lucide-react";
+import { Smartphone } from "lucide-react";
 
 export default function HapticFeedbackToggle() {
   const [enabled, setEnabled] = useState(false);

@@ -94,8 +94,8 @@ export default function BookingRequestModal({ open, onOpenChange, listing, onSuc
         ownerId: listing.owner_user_id,
         guestName: user?.user_metadata?.full_name,
         listingTitle: listing.title,
-        checkIn: form.check_in,
-        checkOut: form.check_out,
+        checkIn: checkinDate,
+        checkOut: checkoutDate,
       });
       onOpenChange(false);
       onSuccess?.();

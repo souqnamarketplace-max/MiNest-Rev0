@@ -43,7 +43,7 @@ export default function VerificationPayment({
         status: 'pending',
         document_urls: [],
       });
-      onPaymentComplete?.();
+      onComplete?.();
       return;
       } catch (err) {
       console.error("Payment error:", err);

@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Home, TrendingUp, DollarSign, Users, MapPin, Clock } from "lucide-react";
+import { Home, TrendingUp, DollarSign, Users, MapPin } from "lucide-react";
 import { formatCents } from "@/lib/paymentHelpers";
 
 const COLORS = ["hsl(var(--accent))", "hsl(var(--secondary))", "hsl(var(--primary))", "#f59e0b", "#8b5cf6", "#ec4899"];

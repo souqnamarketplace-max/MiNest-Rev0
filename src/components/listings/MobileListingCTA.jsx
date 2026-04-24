@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Heart, Calendar, Eye, Share2 } from "lucide-react";
-import { formatRentPrice, getCurrencyByCountry } from "@/lib/pricingHelpers";
+import { getCurrencyByCountry } from "@/lib/pricingHelpers";
 import { useCountry } from "@/lib/CountryContext";
 
 export default function MobileListingCTA({

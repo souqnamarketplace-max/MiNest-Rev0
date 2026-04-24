@@ -15,7 +15,7 @@ export default [
     ...pluginJs.configs.recommended,
     ...pluginReact.configs.flat.recommended,
     languageOptions: {
-      globals: globals.browser,
+      globals: { ...globals.browser, ...globals.node },
       parserOptions: {
         ecmaVersion: 2022,
         sourceType: "module",
@@ -35,6 +35,9 @@ export default [
       "unused-imports": pluginUnusedImports,
     },
     rules: {
+      // CRITICAL: Catches undefined variables (e.g. removed-but-still-referenced components)
+      // This would have caught the BrandedLoader bug before it reached GitHub
+      "no-undef": "error",
       "no-unused-vars": "off",
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "error",

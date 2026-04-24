@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Zap, Sparkles } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 
 export default function BoostStatusBadge({ listing }) {
   const [daysRemaining, setDaysRemaining] = useState(null);

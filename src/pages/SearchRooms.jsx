@@ -1,16 +1,14 @@
 import React, { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
-import { Skeleton } from "@/components/ui/skeleton";
 import { SelectItem } from "@/components/ui/select";
 import MobileDrawerSelect from "@/components/ui/mobile-drawer-select";
-import { Search, Map, Bell, Bookmark, X, ChevronLeft, ChevronRight, Loader2, List } from "lucide-react";
+import { Search, Map, ChevronLeft, ChevronRight, Loader2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import ListingCard from "@/components/listings/ListingCard";
 const MapView = lazy(() => import("@/components/search/MapView"));
 import SearchLayout from "@/components/search/SearchLayout";
-import SaveSearchButton from "@/components/search/SaveSearchButton";
 import ActiveFilterChips from "@/components/search/ActiveFilterChips";
 import { useAuth } from "@/lib/AuthContext";
 import { useCountry } from "@/lib/CountryContext";

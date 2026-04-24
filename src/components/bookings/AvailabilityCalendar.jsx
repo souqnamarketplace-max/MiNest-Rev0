@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Calendar, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June",

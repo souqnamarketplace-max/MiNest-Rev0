@@ -7,13 +7,12 @@ import { Link, useParams } from "react-router-dom";
 import { entities } from '@/api/entities';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { MapPin, ChevronRight, Home, ArrowLeft } from "lucide-react";
+import { MapPin, ChevronRight, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ListingCard from "@/components/listings/ListingCard";
 import {
-  slugToCity, cityToSlug, cityPageUrl, getNearbyCities,
+  slugToCity, cityPageUrl, getNearbyCities,
   generateCityContent, getCityProvince, setPageMeta, buildBreadcrumbSchema,
   generateCityFAQs, buildFAQSchema
 } from "@/lib/seoHelpers";

@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { APP_CONFIG } from "@/lib/config";
 
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: "instant" });
 

@@ -8,8 +8,11 @@
     "build": "vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,json,css,md}\"",
     "typecheck": "tsc -p ./jsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
@@ -93,7 +96,9 @@
     "eslint-plugin-react-refresh": "^0.4.18",
     "eslint-plugin-unused-imports": "^4.3.0",
     "globals": "^15.14.0",
+    "husky": "^9.1.7",
     "postcss": "^8.5.3",
+    "prettier": "^3.4.2",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2",
     "vite": "^6.1.0"

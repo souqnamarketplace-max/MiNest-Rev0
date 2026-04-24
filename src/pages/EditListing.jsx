@@ -8,13 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, AlertCircle, Loader2 } from "lucide-react";
 import {
   PROPERTY_TYPES, FURNISHING_OPTIONS, BATHROOM_TYPES,
   FLOOR_LEVEL_OPTIONS, LAUNDRY_OPTIONS, KITCHEN_ACCESS_OPTIONS,
-  AC_HEATING_OPTIONS, TOTAL_BEDROOMS_OPTIONS, CURRENT_ROOMMATES_OPTIONS,
-  BEDS_IN_ROOM_OPTIONS, BOOKING_MODE_OPTIONS, CANCELLATION_POLICY_OPTIONS,
+  AC_HEATING_OPTIONS, TOTAL_BEDROOMS_OPTIONS, CURRENT_ROOMMATES_OPTIONS, BOOKING_MODE_OPTIONS, CANCELLATION_POLICY_OPTIONS,
   CHECKIN_TIME_OPTIONS, CHECKOUT_TIME_OPTIONS,
 } from "@/lib/config";
 import { toast } from "sonner";

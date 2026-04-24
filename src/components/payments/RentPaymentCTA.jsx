@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { formatCents, getIntervalLabel, getSubscriptionStatusConfig } from "@/lib/paymentHelpers";
-import { CreditCard, FileText, CheckCircle2, Clock, Link as LinkIcon } from "lucide-react";
+import { CreditCard, FileText, CheckCircle2, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 

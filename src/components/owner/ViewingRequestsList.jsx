@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import ViewingRequestCard from "@/components/owner/ViewingRequestCard";
 import { Calendar } from "lucide-react";

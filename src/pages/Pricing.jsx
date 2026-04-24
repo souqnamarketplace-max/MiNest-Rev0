@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { entities } from "@/api/entities";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles, Loader2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { useCountry } from "@/lib/CountryContext";
 import { APP_CONFIG } from "@/lib/config";

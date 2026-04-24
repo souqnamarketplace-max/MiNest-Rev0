@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import usePullToRefresh from "@/hooks/usePullToRefresh";
 import Header from "./Header";

@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import VerificationPayment from "@/components/verification/VerificationPayment";
 import VerificationDocuments from "@/components/verification/VerificationDocuments";
 import VerificationSummary from "@/components/verification/VerificationSummary";

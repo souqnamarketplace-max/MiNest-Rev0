@@ -6,11 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Menu, Search, PlusCircle, User, LogOut, Heart, MessageSquare, Home, CreditCard, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { APP_CONFIG } from '@/lib/config';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import CountrySwitcher from '@/components/layout/CountrySwitcher';
 import SignInRequiredModal from '@/components/modals/SignInRequiredModal';
-import { supabase } from '@/lib/supabase';
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);

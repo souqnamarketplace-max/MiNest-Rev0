@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Search, BookmarkPlus } from "lucide-react";
+import { Bell, BookmarkPlus } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 

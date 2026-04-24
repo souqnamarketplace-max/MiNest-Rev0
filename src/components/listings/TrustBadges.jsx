@@ -1,6 +1,5 @@
 import React from "react";
-import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, CheckCircle2, Clock } from "lucide-react";
+import { ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export default function TrustBadges({ hostProfile, listing }) {
   const badges = [];

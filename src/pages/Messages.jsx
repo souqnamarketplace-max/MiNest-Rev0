@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
-import { MessageSquare, Flag, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import usePullToRefresh from "@/hooks/usePullToRefresh";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

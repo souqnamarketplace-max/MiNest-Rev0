@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Zap, Minus, Plus } from "lucide-react";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { toast } from "sonner";
 
 export default function BoostModal({ listing, open, onOpenChange }) {
@@ -38,14 +38,9 @@ export default function BoostModal({ listing, open, onOpenChange }) {
   const handlePurchase = async () => {
     setLoading(true);
     try {
-      toast.info('Boost payments will be available after Stripe setup. Your listing will be boosted manually for now.'); setOpen(false); return;
-
-      if (response.data?.checkoutUrl) {
-        window.location.href = response.data.checkoutUrl;
-      } else {
-        toast.error("Failed to create checkout session");
-      }
-    } catch (err) {
+      toast.info('Boost payments will be available after Stripe setup. Your listing will be boosted manually for now.');
+      onOpenChange(false);
+    } catch {
       toast.error("Failed to create checkout session");
     } finally {
       setLoading(false);

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { entities } from '@/api/entities';
 import { notifyViewingConfirmed, notifyViewingDeclined } from "@/lib/notificationService";
-import { getAvatarFallback, formatDate } from "@/lib/geoHelpers";
+import { getAvatarFallback } from "@/lib/geoHelpers";
 import { format } from "date-fns";
 import { CheckCircle2, XCircle, Clock, MessageSquare, Home } from "lucide-react";
 import { toast } from "sonner";

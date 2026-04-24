@@ -1,11 +1,11 @@
-import React, { useMemo, useEffect, useState, useCallback, useRef } from "react";
+import React, { useMemo, useEffect, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Link } from "react-router-dom";
-import { MapPin, Bed, Bath, Heart, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Bath, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCountry } from "@/lib/CountryContext";
-import { getCurrencyByCountry, formatRentPrice, getPeriodShort } from "@/lib/pricingHelpers";
+import { getCurrencyByCountry, formatRentPrice } from "@/lib/pricingHelpers";
 
 // Fix default markers
 delete L.Icon.Default.prototype._getIconUrl;

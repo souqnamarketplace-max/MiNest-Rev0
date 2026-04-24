@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { entities, invokeLLM } from '@/api/entities';
 import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 import { toast } from "sonner";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function ListingEditModal({ listing, open, onClose, onSaved }) {
   const [form, setForm] = useState({

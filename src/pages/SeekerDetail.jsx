@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   MapPin, DollarSign, Briefcase, Calendar, MessageSquare, ArrowLeft,
-  Cigarette, PawPrint, Users, GraduationCap, Heart, Flag
+  Cigarette, PawPrint, GraduationCap, Heart, Flag
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";

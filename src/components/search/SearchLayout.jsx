@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import MobileDrawerSelect from "@/components/ui/mobile-drawer-select";
 import { useCountry } from "@/lib/CountryContext";
 import { getRegionsForCountry } from "@/lib/geoHelpers";

@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# Runs lint + build before every commit to catch errors locally
+# before they hit GitHub/Vercel
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Run ESLint on staged files
+echo "  → Linting..."
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "❌ Lint failed. Fix errors above or run 'npm run lint:fix'"
+  exit 1
+fi
+
+# 2. Quick build check (catches syntax errors, broken imports)
+echo "  → Build check..."
+npm run build > /tmp/build-check.log 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Log:"
+  tail -30 /tmp/build-check.log
+  echo ""
+  echo "Fix build errors before committing."
+  exit 1
+fi
+
+echo "✅ All checks passed"

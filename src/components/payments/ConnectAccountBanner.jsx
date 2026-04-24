@@ -4,7 +4,6 @@
  */
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { invokeFunction } from '@/api/entities';
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/AuthContext";
 import { AlertCircle, CheckCircle2, Loader2, ExternalLink, CreditCard, Edit3, LogOut } from "lucide-react";

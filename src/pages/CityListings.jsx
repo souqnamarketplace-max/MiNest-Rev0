@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
@@ -51,7 +51,7 @@ export default function CityListings() {
     enabled: !!city && !!province
   });
 
-  const { data: favorites } = useQuery({
+  const { data: favorites, refetch: refetchFavorites } = useQuery({
     queryKey: ["favorites", user?.id],
     queryFn: async () => {
       if (!user?.email) return [];

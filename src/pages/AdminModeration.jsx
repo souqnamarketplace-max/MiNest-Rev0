@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertCircle, Shield, FileText, TrendingUp, Filter, RefreshCw
+  AlertCircle, Shield, FileText, Filter, RefreshCw
 } from "lucide-react";
-import { toast } from "sonner";
 import ListingModerationCard from "@/components/admin/ListingModerationCard";
 
 export default function AdminModeration() {
@@ -27,20 +26,7 @@ export default function AdminModeration() {
     enabled: !!user?.id,
   });
 
-  // Admin access check
-  if (!adminProfile?.is_admin) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
-          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-destructive">Access Denied</h2>
-          <p className="text-sm text-muted-foreground mt-2">You do not have admin privileges.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Fetch listings by status
+  // Fetch listings by status (only if admin)
   const { data: listings, isLoading, refetch } = useQuery({
     queryKey: ['admin-listings', activeTab],
     queryFn: async () => {
@@ -54,7 +40,8 @@ export default function AdminModeration() {
       const status = statusMap[activeTab];
       const results = await entities.Listing.filter({ status });
       return results.sort((a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date));
-    }
+    },
+    enabled: !!adminProfile?.is_admin,
   });
 
   // Fetch audit logs
@@ -63,14 +50,29 @@ export default function AdminModeration() {
     queryFn: async () => {
       const logs = await [];
       return logs.sort((a, b) => new Date(b.created_at || b.created_date) - new Date(a.created_at || a.created_date)).slice(0, 20);
-    }
+    },
+    enabled: !!adminProfile?.is_admin,
   });
 
   // Fetch metrics
   const { data: allListings } = useQuery({
     queryKey: ['all-listings'],
-    queryFn: async () => entities.Listing.filter({})
+    queryFn: async () => entities.Listing.filter({}),
+    enabled: !!adminProfile?.is_admin,
   });
+
+  // Admin access check — AFTER all hooks to satisfy Rules of Hooks
+  if (!adminProfile?.is_admin) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-destructive">Access Denied</h2>
+          <p className="text-sm text-muted-foreground mt-2">You do not have admin privileges.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleActionComplete = () => {
     refetch();

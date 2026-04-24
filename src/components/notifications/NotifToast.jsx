@@ -3,7 +3,6 @@
  * and shows a toast for high-priority types.
  */
 import { useEffect } from "react";
-import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import { getNotifIconConfig } from "@/lib/notificationIcons";

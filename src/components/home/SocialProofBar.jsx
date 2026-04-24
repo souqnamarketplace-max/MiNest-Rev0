@@ -1,7 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { entities } from '@/api/entities';
 import { useCountry } from "@/lib/CountryContext";
 import { supabase } from "@/lib/supabase";
 

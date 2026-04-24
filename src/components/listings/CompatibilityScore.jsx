@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Zap, CheckCircle2 } from "lucide-react";
+import { Zap } from "lucide-react";
 
 export default function CompatibilityScore({ listing, seeker }) {
   const score = useMemo(() => {

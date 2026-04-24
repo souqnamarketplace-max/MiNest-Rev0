@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { entities } from '@/api/entities';
-import { isQuebec } from "@/lib/geoHelpers";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -6,7 +6,6 @@ import { FileText, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
 import { invokeLLM } from '@/api/entities';
-import AddressAutocomplete from '@/components/ui/AddressAutocomplete';
 
 export default function RoommateAgreementGenerator() {
   const [formData, setFormData] = useState({

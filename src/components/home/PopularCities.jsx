@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useCountry } from '@/lib/CountryContext';
 import { cityPageUrl } from '@/lib/seoHelpers';
-import { MapPin, TrendingUp } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 const CITIES = {
   'Canada': [

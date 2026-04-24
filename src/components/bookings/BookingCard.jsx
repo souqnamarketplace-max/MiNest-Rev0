@@ -1,6 +1,6 @@
 import React from "react";
-import { Calendar, User, DollarSign } from "lucide-react";
-import { getBookingStatusInfo, formatTime } from "@/lib/bookingHelpers";
+import { Calendar, DollarSign } from "lucide-react";
+import { getBookingStatusInfo } from "@/lib/bookingHelpers";
 
 export default function BookingCard({ booking, viewAs = "host", children }) {
   const statusInfo = getBookingStatusInfo(booking.status);

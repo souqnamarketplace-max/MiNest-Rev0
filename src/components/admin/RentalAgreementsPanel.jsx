@@ -5,7 +5,7 @@
  */
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { entities, invokeFunction } from '@/api/entities';
+import { entities } from '@/api/entities';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { FileText, Search, Edit2, XCircle, CheckCircle2, RefreshCw, Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, Search, XCircle, CheckCircle2, RefreshCw, Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 const STATUS_COLORS = {
   pending_tenant: "bg-yellow-100 text-yellow-800",
