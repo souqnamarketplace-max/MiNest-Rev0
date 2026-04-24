@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Shield, AlertTriangle, Trash2, Edit, UserCog, Download, Loader2,
-  ArrowLeft, Search, Eye, Filter,
+  ArrowLeft, Search, Eye, Filter, Copy, ExternalLink,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 const ACTION_CONFIG = {
   delete: { label: "Deleted", color: "bg-red-100 text-red-700", Icon: Trash2 },
@@ -58,6 +59,43 @@ export default function AuditLog() {
       return data || [];
     },
     enabled: !!adminProfile?.is_admin,
+  });
+
+  // Resolve entity IDs to human-readable names (email for users, title for listings, etc.)
+  const entityIds = React.useMemo(() => {
+    const map = { listing: new Set(), user_profile: new Set(), saved_search: new Set() };
+    for (const log of logs) {
+      if (!log.entity_id) continue;
+      if (log.entity_type === "listing") map.listing.add(log.entity_id);
+      else if (log.entity_type === "user_profile") map.user_profile.add(log.entity_id);
+      else if (log.entity_type === "saved_search") map.saved_search.add(log.entity_id);
+    }
+    return {
+      listing: Array.from(map.listing),
+      user_profile: Array.from(map.user_profile),
+      saved_search: Array.from(map.saved_search),
+    };
+  }, [logs]);
+
+  const { data: entityNames = {} } = useQuery({
+    queryKey: ["audit-log-names", entityIds.listing.length, entityIds.user_profile.length, entityIds.saved_search.length],
+    queryFn: async () => {
+      const names = { listing: {}, user_profile: {}, saved_search: {} };
+      if (entityIds.listing.length > 0) {
+        const { data } = await supabase.from("listings").select("id, title, slug").in("id", entityIds.listing);
+        data?.forEach((l) => { names.listing[l.id] = { label: l.title || "(untitled)", link: `/listing/${l.slug || l.id}` }; });
+      }
+      if (entityIds.user_profile.length > 0) {
+        const { data } = await supabase.from("user_profiles").select("user_id, email, display_name").in("user_id", entityIds.user_profile);
+        data?.forEach((u) => { names.user_profile[u.user_id] = { label: u.display_name || u.email || "(no name)", subLabel: u.email }; });
+      }
+      if (entityIds.saved_search.length > 0) {
+        const { data } = await supabase.from("saved_searches").select("id, name").in("id", entityIds.saved_search);
+        data?.forEach((s) => { names.saved_search[s.id] = { label: s.name || "(unnamed)" }; });
+      }
+      return names;
+    },
+    enabled: entityIds.listing.length > 0 || entityIds.user_profile.length > 0 || entityIds.saved_search.length > 0,
   });
 
   React.useEffect(() => {
@@ -177,6 +215,9 @@ export default function AuditLog() {
             const cfg = ACTION_CONFIG[log.action] || { label: log.action, color: "bg-muted text-muted-foreground", Icon: Edit };
             const Icon = cfg.Icon;
             const timeAgo = formatDistanceToNow(new Date(log.created_at), { addSuffix: true });
+            const fullDate = format(new Date(log.created_at), "MMM d, yyyy · h:mm a");
+            const resolved = log.entity_id && entityNames[log.entity_type]?.[log.entity_id];
+
             return (
               <div key={log.id} className="bg-card rounded-xl border border-border p-4">
                 <div className="flex items-start gap-3">
@@ -184,27 +225,77 @@ export default function AuditLog() {
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <Badge variant="outline" className="text-[10px]">{cfg.label}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{log.entity_type}</Badge>
-                      {log.actor_is_admin && <Badge className="text-[10px] bg-accent/10 text-accent border-accent/30">Admin</Badge>}
+                    {/* Header: badges + timestamp on the right */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge variant="outline" className="text-[10px]">{cfg.label}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{log.entity_type}</Badge>
+                        {log.actor_is_admin && <Badge className="text-[10px] bg-accent/10 text-accent border-accent/30">Admin</Badge>}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs font-medium text-foreground" title={new Date(log.created_at).toISOString()}>
+                          {fullDate}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">{timeAgo}</p>
+                      </div>
                     </div>
-                    <p className="text-sm font-medium text-foreground">
-                      <span className="text-muted-foreground">by</span>{" "}
-                      <span className="font-semibold">{log.actor_email || "system"}</span>
+
+                    {/* Actor + Target */}
+                    <div className="text-sm space-y-1">
+                      <p>
+                        <span className="text-muted-foreground">Actor: </span>
+                        <span className="font-semibold">{log.actor_email || "system"}</span>
+                      </p>
                       {log.entity_id && (
-                        <>
-                          {" "}<span className="text-muted-foreground">on</span>{" "}
-                          <span className="font-mono text-xs">{log.entity_id.slice(0, 8)}...</span>
-                        </>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-muted-foreground text-sm">Target: </span>
+                          {resolved ? (
+                            <>
+                              {resolved.link ? (
+                                <Link to={resolved.link} className="text-accent hover:underline font-medium text-sm inline-flex items-center gap-1">
+                                  {resolved.label}
+                                  <ExternalLink className="w-3 h-3" />
+                                </Link>
+                              ) : (
+                                <span className="font-medium text-sm">{resolved.label}</span>
+                              )}
+                              {resolved.subLabel && resolved.subLabel !== resolved.label && (
+                                <span className="text-xs text-muted-foreground">{resolved.subLabel}</span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="font-medium text-sm">—</span>
+                          )}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(log.entity_id);
+                              toast.success("ID copied");
+                            }}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 hover:bg-muted rounded text-[10px] font-mono text-muted-foreground"
+                            title={`Full ID: ${log.entity_id}`}
+                          >
+                            <Copy className="w-2.5 h-2.5" />
+                            {log.entity_id.slice(0, 8)}
+                          </button>
+                        </div>
                       )}
-                    </p>
+                    </div>
+
+                    {/* Metadata — pretty-printed key/value pairs */}
                     {log.metadata && Object.keys(log.metadata).length > 0 && (
-                      <div className="mt-2 bg-muted/30 rounded p-2 text-xs font-mono text-muted-foreground overflow-x-auto">
-                        {JSON.stringify(log.metadata, null, 2)}
+                      <div className="mt-2 bg-muted/30 rounded-lg p-2.5 text-xs space-y-0.5">
+                        {Object.entries(log.metadata).map(([key, value]) => (
+                          <div key={key} className="flex gap-2">
+                            <span className="text-muted-foreground font-medium min-w-[100px] flex-shrink-0">
+                              {key.replace(/_/g, " ")}:
+                            </span>
+                            <span className="text-foreground break-all">
+                              {typeof value === "object" ? JSON.stringify(value) : String(value)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1.5">{timeAgo} · {new Date(log.created_at).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
