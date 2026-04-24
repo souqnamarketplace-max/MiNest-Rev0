@@ -4,11 +4,13 @@ import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Shield, Users, Home, Flag, Check, Pause, Trash2, Play, Zap, 
   DollarSign, BadgeCheck, CreditCard, Percent, FileText, BarChart2, 
-  MessageSquare, Eye, AlertTriangle, ClipboardList, Mail
+  MessageSquare, Eye, AlertTriangle, ClipboardList, Mail, Search
 } from "lucide-react";
 import BoostSettingsPanel from "@/components/admin/BoostSettingsPanel";
 import ListingEditModal from "@/components/admin/ListingEditModal";
@@ -192,16 +194,24 @@ function ModerationTab() {
 
 // ── Listings Tab ──────────────────────────────────────────────────────────────
 function ListingsTab({ onEdit }) {
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [countryFilter, setCountryFilter] = React.useState("all");
+  const [page, setPage] = React.useState(1);
+  const PAGE_SIZE = 50;
+
   const { data: listings = [], isLoading, refetch } = useQuery({
     queryKey: ["admin-all-listings"],
-    queryFn: () => entities.Listing.list("-created_at", 100),
+    queryFn: () => entities.Listing.list("-created_at", 5000),
   });
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => { setPage(1); }, [search, statusFilter, countryFilter]);
 
   const handleStatus = async (id, status) => {
     const listing = listings.find(l => l.id === id);
     await entities.Listing.update(id, { status });
     toast.success(`Listing ${status}`);
-    // Notify the listing owner
     if (listing?.owner_user_id) {
       if (status === "active") {
         notifyListingApproved({ ownerId: listing.owner_user_id, listingTitle: listing.title, listingSlug: listing.slug || listing.id });
@@ -212,43 +222,167 @@ function ListingsTab({ onEdit }) {
     refetch();
   };
 
+  const handleDelete = async (listing) => {
+    if (!window.confirm(`Delete "${listing.title}"?\n\nThis cannot be undone. The listing will be removed permanently.`)) return;
+    try {
+      await entities.Listing.delete(listing.id);
+      toast.success("Listing deleted");
+      refetch();
+    } catch (err) {
+      toast.error(err.message || "Failed to delete listing");
+    }
+  };
+
   const statusColors = {
     active: "bg-green-100 text-green-700",
     pending_review: "bg-yellow-100 text-yellow-700",
     paused: "bg-orange-100 text-orange-700",
     rejected: "bg-red-100 text-red-700",
     draft: "bg-gray-100 text-gray-600",
+    rented: "bg-blue-100 text-blue-700",
+    flagged: "bg-red-100 text-red-700",
   };
+
+  // Apply filters
+  const filtered = React.useMemo(() => {
+    return listings.filter(l => {
+      if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (countryFilter !== "all" && l.country !== countryFilter) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matches =
+          l.title?.toLowerCase().includes(q) ||
+          l.city?.toLowerCase().includes(q) ||
+          l.slug?.toLowerCase().includes(q) ||
+          l.id?.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [listings, search, statusFilter, countryFilter]);
+
+  // Status counts for filter dropdown labels
+  const statusCounts = React.useMemo(() => {
+    const counts = { all: listings.length };
+    for (const l of listings) counts[l.status] = (counts[l.status] || 0) + 1;
+    return counts;
+  }, [listings]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (isLoading) return <div className="h-40 bg-muted rounded-lg animate-pulse" />;
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm text-muted-foreground mb-4">{listings.length} total listings</p>
-      {listings.map(l => (
-        <div key={l.id} className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">
-          <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-            {l.cover_photo_url && <img src={l.cover_photo_url} alt="" className="w-full h-full object-cover" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{l.title}</p>
-            <p className="text-xs text-muted-foreground">{l.city}, {l.province_or_state} · ${l.rent_amount}/mo</p>
-          </div>
-          <Badge className={`text-xs ${statusColors[l.status] || "bg-gray-100"}`}>{l.status?.replace(/_/g, " ")}</Badge>
+    <div className="space-y-3">
+      {/* Filter bar */}
+      <div className="bg-card border border-border rounded-xl p-3 flex flex-col sm:flex-row gap-2">
+        <div className="flex-1 relative">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            placeholder="Search by title, city, or ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44 h-9 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses ({statusCounts.all || 0})</SelectItem>
+            <SelectItem value="active">Active ({statusCounts.active || 0})</SelectItem>
+            <SelectItem value="pending_review">Pending ({statusCounts.pending_review || 0})</SelectItem>
+            <SelectItem value="paused">Paused ({statusCounts.paused || 0})</SelectItem>
+            <SelectItem value="rejected">Rejected ({statusCounts.rejected || 0})</SelectItem>
+            <SelectItem value="rented">Rented ({statusCounts.rented || 0})</SelectItem>
+            <SelectItem value="draft">Draft ({statusCounts.draft || 0})</SelectItem>
+            <SelectItem value="flagged">Flagged ({statusCounts.flagged || 0})</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={countryFilter} onValueChange={setCountryFilter}>
+          <SelectTrigger className="w-full sm:w-40 h-9 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All countries</SelectItem>
+            <SelectItem value="Canada">🍁 Canada</SelectItem>
+            <SelectItem value="United States">🇺🇸 USA</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Summary */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {filtered.length} {filtered.length === 1 ? "listing" : "listings"}
+          {filtered.length !== listings.length && ` (of ${listings.length})`}
+          {totalPages > 1 && <span className="ml-1">· Page {page} of {totalPages}</span>}
+        </p>
+        {totalPages > 1 && (
           <div className="flex gap-1">
-            <Button size="sm" variant="ghost" aria-label="Edit listing" onClick={() => onEdit(l)}><Eye className="w-3.5 h-3.5" /></Button>
-            <Button size="sm" variant="ghost" aria-label="Toggle pause"
-              onClick={() => handleStatus(l.id, l.status === "active" ? "paused" : "active")}>
-              {l.status === "active" ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="h-8">
+              Previous
             </Button>
-            {l.status === "pending_review" && (
-              <Button size="sm" variant="ghost" className="text-green-600" onClick={() => handleStatus(l.id, "active")}>
-                <Check className="w-3.5 h-3.5" />
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="h-8">
+              Next
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* List */}
+      {pageItems.length === 0 ? (
+        <div className="text-center py-12 bg-muted/30 rounded-xl">
+          <Home className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">No listings match these filters.</p>
+        </div>
+      ) : (
+        pageItems.map(l => (
+          <div key={l.id} className="flex items-center gap-3 bg-card border border-border rounded-xl p-3">
+            <div className="w-12 h-12 rounded-lg bg-muted overflow-hidden flex-shrink-0">
+              {l.cover_photo_url && <img src={l.cover_photo_url} alt="" className="w-full h-full object-cover" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate">{l.title}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {l.city}{l.province_or_state ? `, ${l.province_or_state}` : ""}
+                {l.rent_amount ? ` · $${l.rent_amount}/mo` : ""}
+              </p>
+            </div>
+            <Badge className={`text-xs ${statusColors[l.status] || "bg-gray-100"}`}>{l.status?.replace(/_/g, " ")}</Badge>
+            <div className="flex gap-1">
+              <Button size="sm" variant="ghost" aria-label="Edit listing" title="Edit listing" onClick={() => onEdit(l)}>
+                <Eye className="w-3.5 h-3.5" />
               </Button>
-            )}
+              <Button size="sm" variant="ghost" aria-label="Toggle pause" title={l.status === "active" ? "Pause" : "Activate"}
+                onClick={() => handleStatus(l.id, l.status === "active" ? "paused" : "active")}>
+                {l.status === "active" ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              </Button>
+              {l.status === "pending_review" && (
+                <Button size="sm" variant="ghost" className="text-green-600" title="Approve" onClick={() => handleStatus(l.id, "active")}>
+                  <Check className="w-3.5 h-3.5" />
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" title="Delete permanently" onClick={() => handleDelete(l)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))
+      )}
+
+      {/* Bottom pagination */}
+      {totalPages > 1 && pageItems.length > 0 && (
+        <div className="flex items-center justify-between pt-4">
+          <p className="text-xs text-muted-foreground">Page {page} of {totalPages}</p>
+          <div className="flex gap-1">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
