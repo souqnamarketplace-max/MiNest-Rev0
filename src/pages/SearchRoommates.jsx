@@ -17,7 +17,6 @@ import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import ShareButton from "@/components/common/ShareButton";
 import SignInRequiredModal from "@/components/modals/SignInRequiredModal";
-import BrandedLoader from "@/components/common/BrandedLoader";
 
 export default function SearchRoommates() {
   const { country: globalCountry } = useCountry();
@@ -97,7 +96,6 @@ export default function SearchRoommates() {
 
       {/* Results */}
       {isLoading ? (
-        <BrandedLoader messages={["Finding roommates...", "Matching preferences...", "Almost ready..."]} />
       ) : seekers.length === 0 ? (
         <div className="text-center py-20">
           <User className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />

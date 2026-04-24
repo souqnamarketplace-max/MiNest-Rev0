@@ -12,7 +12,6 @@ const MapView = lazy(() => import("@/components/search/MapView"));
 import SearchLayout from "@/components/search/SearchLayout";
 import SaveSearchButton from "@/components/search/SaveSearchButton";
 import ActiveFilterChips from "@/components/search/ActiveFilterChips";
-import BrandedLoader from "@/components/common/BrandedLoader";
 import { useAuth } from "@/lib/AuthContext";
 import { useCountry } from "@/lib/CountryContext";
 import { matchesParkingFilter } from "@/lib/parkingHelpers";
@@ -362,7 +361,6 @@ export default function SearchRooms() {
   const listingGrid = (
     <>
       {isLoading && !error ? (
-        <BrandedLoader messages={["Finding rooms near you...", "Checking availability...", "Almost ready..."]} />
       ) : listings.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
@@ -473,7 +471,6 @@ export default function SearchRooms() {
 
           {/* Listings */}
           {isLoading ? (
-            <BrandedLoader messages={["Finding rooms near you...", "Checking availability...", "Almost ready..."]} />
           ) : listings.length === 0 ? (
             <div className="text-center py-16">
               <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
