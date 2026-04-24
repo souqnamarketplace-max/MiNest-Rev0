@@ -361,6 +361,7 @@ export default function SearchRooms() {
   const listingGrid = (
     <>
       {isLoading && !error ? (
+        <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-muted border-t-accent rounded-full animate-spin" /></div>
       ) : listings.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
