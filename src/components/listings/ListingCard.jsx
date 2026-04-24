@@ -3,7 +3,8 @@ import { listingUrl } from '@/lib/listingHelpers';
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, MapPin, Wifi, Car, Sparkles, ShieldCheck, Bed, Bath, CreditCard, Mail, TrendingDown, Train } from "lucide-react";
+import { Heart, MapPin, Wifi, Car, Sparkles, Bed, Bath, CreditCard, Mail, TrendingDown, Train } from "lucide-react";
+import { VerifiedBadgeGroup } from "@/components/common/VerifiedBadge";
 import { formatRentPrice, formatEquivalentMonthly, getCurrencyByCountry } from "@/lib/pricingHelpers";
 import { getParkingCardDisplay } from "@/lib/parkingHelpers";
 import ShareButton from "@/components/common/ShareButton.jsx";
@@ -99,9 +100,7 @@ export default function ListingCard({ listing, isFavorited, onToggleFavorite }) 
           {/* Badges - Bottom Left */}
           <div className="absolute bottom-3 left-3 flex gap-1 flex-wrap">
             {listing.verification_badges?.length > 0 && (
-              <Badge variant="outline" className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-xs gap-1">
-                <ShieldCheck className="w-3 h-3 text-accent" /> Verified
-              </Badge>
+              <VerifiedBadgeGroup badges={listing.verification_badges} />
             )}
             {listing.payments_enabled && (
               <Badge className="bg-secondary/20 text-secondary border-secondary/30 text-xs gap-1">

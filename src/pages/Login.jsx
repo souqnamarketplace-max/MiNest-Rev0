@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Mail, ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react';
+import ForgotPasswordModal from '@/components/auth/ForgotPasswordModal';
 
 export default function Login() {
   const { isAuthenticated, isLoadingAuth } = useAuth();
@@ -20,6 +21,7 @@ export default function Login() {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup' | 'recovery'
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [forgotOpen, setForgotOpen] = useState(false);
   // Rate limiting: max 5 attempts per 60 seconds
   const [attempts, setAttempts] = useState(0);
   const [cooldownUntil, setCooldownUntil] = useState(null);
@@ -164,26 +166,6 @@ export default function Login() {
     } catch (err) {
       toast.error(err.message || 'Google sign-in failed.');
       setGoogleLoading(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
-      toast.error('Enter your email first, then click "Forgot password?"');
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        { redirectTo: `${window.location.origin}/login` }
-      );
-      if (error) throw error;
-      toast.success('Password reset email sent! Check your inbox.');
-    } catch (err) {
-      toast.error(err.message || 'Failed to send reset email.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -381,7 +363,7 @@ export default function Login() {
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={handleForgotPassword}
+                    onClick={() => setForgotOpen(true)}
                     className="text-xs text-muted-foreground hover:text-accent transition-colors"
                   >
                     Forgot password?
@@ -453,6 +435,7 @@ export default function Login() {
           </div>
         )}
       </div>
+      <ForgotPasswordModal open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={email} />
     </div>
   );
 }
