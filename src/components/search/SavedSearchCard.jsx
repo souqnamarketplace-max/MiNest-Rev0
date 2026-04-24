@@ -33,7 +33,7 @@ function buildSummary(s) {
 export default function SavedSearchCard({ search, onUpdated, onDeleted }) {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(search.name || "");
-  const [editFreq, setEditFreq] = useState(search.alert_frequency || "instant");
+  const [editFreq, setEditFreq] = useState(search.frequency || "daily");
   const [toggling, setToggling] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -60,7 +60,7 @@ export default function SavedSearchCard({ search, onUpdated, onDeleted }) {
   const handleSaveEdit = async () => {
     await entities.SavedSearch.update(search.id, {
       name: editName.trim() || search.name,
-      alert_frequency: editFreq,
+      frequency: editFreq,
     });
     toast.success("Search updated");
     setEditing(false);
@@ -82,8 +82,8 @@ export default function SavedSearchCard({ search, onUpdated, onDeleted }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="instant">Instant alerts</SelectItem>
-              <SelectItem value="daily_digest">Daily digest</SelectItem>
+              <SelectItem value="daily">Daily digest</SelectItem>
+              <SelectItem value="weekly">Weekly summary</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex gap-2">
@@ -116,8 +116,18 @@ export default function SavedSearchCard({ search, onUpdated, onDeleted }) {
             </p>
             <div className="flex items-center gap-3 mt-1.5 flex-wrap">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${search.alerts_enabled ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>
-                {search.alerts_enabled ? (search.alert_frequency === "daily_digest" ? "Daily digest" : "Instant alerts") : "Alerts off"}
+                {search.alerts_enabled ? (search.frequency === "weekly" ? "Weekly summary" : "Daily digest") : "Alerts off"}
               </span>
+              {search.alerts_enabled && search.notify_in_app && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  In-app
+                </span>
+              )}
+              {search.alerts_enabled && search.notify_push && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                  Push
+                </span>
+              )}
               {timeAgo && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Last matched {timeAgo}
@@ -138,7 +148,7 @@ export default function SavedSearchCard({ search, onUpdated, onDeleted }) {
               size="icon"
               variant="ghost"
               className="w-7 h-7 text-muted-foreground hover:text-foreground"
-              aria-label="Edit" onClick={() =>  { setEditName(search.name || ""); setEditFreq(search.alert_frequency || "instant"); setEditing(true); }}
+              aria-label="Edit" onClick={() =>  { setEditName(search.name || ""); setEditFreq(search.frequency || "daily"); setEditing(true); }}
               title="Edit"
             >
               <Pencil className="w-3.5 h-3.5" />

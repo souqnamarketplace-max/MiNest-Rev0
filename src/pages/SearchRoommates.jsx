@@ -16,6 +16,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import ShareButton from "@/components/common/ShareButton";
 import SignInRequiredModal from "@/components/modals/SignInRequiredModal";
+import SaveSearchButton from "@/components/search/SaveSearchButton";
 
 export default function SearchRoommates() {
   const { country: globalCountry } = useCountry();
@@ -92,6 +93,19 @@ export default function SearchRoommates() {
           <Input type="number" placeholder="Max budget" value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)} className="w-full" />
         </div>
       </div>
+
+      {/* Summary bar with count + save button */}
+      {!isLoading && (
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground">
+            {seekers.length} {seekers.length === 1 ? "roommate" : "roommates"} found
+          </p>
+          <SaveSearchButton
+            filters={{ city, country, min_price: budgetMin, max_price: budgetMax }}
+            searchType="roommates"
+          />
+        </div>
+      )}
 
       {/* Results */}
       {isLoading ? (

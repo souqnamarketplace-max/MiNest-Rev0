@@ -9,6 +9,7 @@ import { Link, useLocation } from "react-router-dom";
 import ListingCard from "@/components/listings/ListingCard";
 const MapView = lazy(() => import("@/components/search/MapView"));
 import SearchLayout from "@/components/search/SearchLayout";
+import SaveSearchButton from "@/components/search/SaveSearchButton";
 import ActiveFilterChips from "@/components/search/ActiveFilterChips";
 import { useAuth } from "@/lib/AuthContext";
 import { useCountry } from "@/lib/CountryContext";
@@ -459,6 +460,7 @@ export default function SearchRooms() {
                 <SelectItem value="-rent_normalized_monthly">Price: High</SelectItem>
                 <SelectItem value="-is_featured">Featured</SelectItem>
               </MobileDrawerSelect>
+              <SaveSearchButton filters={filters} searchType="rooms" />
             </div>
           </div>
 

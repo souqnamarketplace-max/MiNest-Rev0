@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, BookmarkPlus } from "lucide-react";
+import { Bell, BookmarkPlus, Inbox, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -47,15 +47,23 @@ function buildFilterSummary(filters) {
   return parts.join(" · ") || "All listings";
 }
 
-export default function SaveSearchModal({ open, onOpenChange, filters = {}, searchType = "room_search", onSaved }) {
-  const { user, navigateToLogin, logout } = useAuth();
+/**
+ * SaveSearchModal
+ * Props:
+ *   searchType: "rooms" | "roommates" (passed from the search page)
+ */
+export default function SaveSearchModal({ open, onOpenChange, filters = {}, searchType = "rooms", onSaved }) {
+  const { user, navigateToLogin } = useAuth();
   const [name, setName] = useState(buildSearchName(filters));
   const [alertsEnabled, setAlertsEnabled] = useState(true);
-  const [frequency, setFrequency] = useState("instant");
+  const [frequency, setFrequency] = useState("daily");
+  const [notifyInApp, setNotifyInApp] = useState(true);
+  const [notifyPush, setNotifyPush] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const filterSummary = buildFilterSummary(filters);
+  const entityLabel = searchType === "roommates" ? "roommates" : "rooms";
 
   // Quebec block
   if (isQuebec(filters.province_or_state)) {
@@ -64,7 +72,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Cannot Save Search</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            MiNest does not currently operate in Quebec. Please search in another province or province.
+            MiNest does not currently operate in Quebec. Please search in another province.
           </p>
           <Button onClick={() => onOpenChange(false)}>Close</Button>
         </DialogContent>
@@ -77,11 +85,14 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
       navigateToLogin(window.location.href);
       return;
     }
+    if (alertsEnabled && !notifyInApp && !notifyPush) {
+      toast.error("Turn on at least one notification channel.");
+      return;
+    }
     setSaving(true);
 
     // Build clean filter payload — pack search criteria into filters JSONB column
     const filterData = {
-      search_type: searchType,
       country: filters.country || null,
       province_or_state: filters.province_or_state || null,
       city: filters.city || null,
@@ -93,13 +104,16 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
       pets_allowed: !!filters.pets_allowed,
       smoking_allowed: !!filters.smoking_allowed,
       student_friendly: !!filters.student_friendly,
-      alert_frequency: frequency,
     };
 
     const payload = {
       user_id: user.id,
       name: name.trim() || buildSearchName(filters),
+      search_type: searchType === "roommates" ? "roommates" : "rooms",
       filters: filterData,
+      frequency: frequency,
+      notify_in_app: notifyInApp,
+      notify_push: notifyPush,
       alerts_enabled: alertsEnabled,
       is_active: true,
     };
@@ -129,7 +143,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
               <h3 className="font-semibold text-foreground text-lg">Search Saved!</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {alertsEnabled
-                  ? "You'll be notified when new matching rooms appear."
+                  ? `You'll be notified when new matching ${entityLabel} appear.`
                   : "Your search is saved. Enable alerts anytime from Saved Searches."}
               </p>
             </div>
@@ -179,7 +193,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
               <Bell className="w-4 h-4 text-accent flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium">Notify me of new matches</p>
-                <p className="text-xs text-muted-foreground">Get alerts when new rooms match</p>
+                <p className="text-xs text-muted-foreground">Get alerts when new {entityLabel} match</p>
               </div>
             </div>
             <Switch checked={alertsEnabled} onCheckedChange={setAlertsEnabled} />
@@ -187,18 +201,45 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
 
           {/* Frequency — only when alerts on */}
           {alertsEnabled && (
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium">Alert frequency</Label>
-              <Select value={frequency} onValueChange={setFrequency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="instant">Instant (as they appear)</SelectItem>
-                  <SelectItem value="daily_digest">Daily digest</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Alert frequency</Label>
+                <Select value={frequency} onValueChange={setFrequency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily digest</SelectItem>
+                    <SelectItem value="weekly">Weekly summary (Mondays)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Channels: in-app + push toggles */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Notify me via</Label>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Inbox className="w-4 h-4 text-accent" />
+                    <div>
+                      <p className="text-xs font-medium">In-app notification</p>
+                      <p className="text-[10px] text-muted-foreground">Bell icon in the header</p>
+                    </div>
+                  </div>
+                  <Switch checked={notifyInApp} onCheckedChange={setNotifyInApp} />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-accent" />
+                    <div>
+                      <p className="text-xs font-medium">Push to phone</p>
+                      <p className="text-[10px] text-muted-foreground">Requires permission</p>
+                    </div>
+                  </div>
+                  <Switch checked={notifyPush} onCheckedChange={setNotifyPush} />
+                </div>
+              </div>
+            </>
           )}
 
           <div className="flex gap-2 pt-1">
