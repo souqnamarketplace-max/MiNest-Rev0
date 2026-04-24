@@ -491,8 +491,8 @@ export default function MapView({ listings, filters, onListingHover, activeListi
       {/* Legend */}
       <MapLegend activeTypes={activeTypes} onToggle={handleToggleType} />
 
-      {/* Listing count badge */}
-      <div className="absolute top-4 left-4 bg-card/95 backdrop-blur-sm rounded-lg border border-border shadow-lg px-3 py-1.5 z-[500]">
+      {/* Listing count badge — positioned below Leaflet zoom controls */}
+      <div className="absolute top-20 left-2 bg-card/95 backdrop-blur-sm rounded-lg border border-border shadow-lg px-3 py-1.5 z-[500]">
         <span className="text-xs font-medium text-foreground">{filteredListings.length} listing{filteredListings.length !== 1 ? "s" : ""}</span>
       </div>
 
