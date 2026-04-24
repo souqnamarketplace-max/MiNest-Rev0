@@ -1,6 +1,12 @@
 /**
  * Renders a formal rental agreement for review and signing.
- * Used by both tenant (to sign/decline) and owner (to view accepted agreements).
+ * Used by both tenant (to sign/decline) and owner (to countersign or view active).
+ *
+ * ZIP 1 fixes:
+ *   - Status on tenant-sign: "active" → "accepted" (so payment flow activates)
+ *   - NEW: landlord countersign branch for tenant-initiated "pending_owner" status
+ *   - NEW: capture IP + user-agent at signing (ESIGN/PIPEDA audit trail)
+ *   - Display "pending_owner" state as "Awaiting Landlord Signature"
  */
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,10 +14,22 @@ import { Input } from "@/components/ui/input";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, FileText, CheckCircle2, XCircle, Download } from "lucide-react";
+import { Loader2, FileText, CheckCircle2, XCircle, Download, Clock } from "lucide-react";
 import { formatCents } from "@/lib/paymentHelpers";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
+
+// Best-effort IP capture. Does not block signing if it fails.
+async function getClientIp() {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.ip || null;
+  } catch {
+    return null;
+  }
+}
 
 function Section({ title, children }) {
   return (
@@ -23,7 +41,7 @@ function Section({ title, children }) {
 }
 
 function Row({ label, value }) {
-  if (!value) return null;
+  if (!value && value !== 0) return null;
   return (
     <div className="flex justify-between py-1 text-sm border-b border-border/40 last:border-0">
       <span className="text-muted-foreground">{label}</span>
@@ -33,10 +51,22 @@ function Row({ label, value }) {
 }
 
 export default function RentalAgreementView({ agreement, plan, onSigned, onDeclined }) {
-  const { user, navigateToLogin, logout } = useAuth();
+  const { user } = useAuth();
   const [signature, setSignature] = useState("");
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState(null);
+
+  const isTenant = user?.id === agreement?.tenant_user_id;
+  const isOwner = user?.id === agreement?.owner_user_id;
+  const isPendingTenant = agreement?.status === "pending_tenant";
+  const isPendingOwner = agreement?.status === "pending_owner";
+  const isAccepted = agreement?.status === "accepted";
+  const isDeclined = agreement?.status === "declined";
+  const isExpired = agreement?.status === "expired";
+
+  const rentDisplay = formatCents(agreement?.rent_amount, agreement?.currency || "cad");
+  const depositDisplay = agreement?.deposit_amount > 0 ? formatCents(agreement.deposit_amount, agreement?.currency || "cad") : null;
+  const lateFeeDisplay = agreement?.late_fee_amount > 0 ? formatCents(agreement.late_fee_amount, agreement?.currency || "cad") : null;
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF({ unit: "pt", format: "letter" });
@@ -74,7 +104,7 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
     };
 
     const addRow = (label, value) => {
-      if (!value) return;
+      if (!value && value !== 0) return;
       checkPage(18);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
@@ -107,19 +137,17 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
     };
 
     const a = agreement;
-    const rentDisplay = formatCents(a?.rent_amount, a?.currency || "cad");
-    const depositDisplay = a?.deposit_amount > 0 ? formatCents(a.deposit_amount, a?.currency || "cad") : null;
-    const lateFeeDisplay = a?.late_fee_amount > 0 ? formatCents(a.late_fee_amount, a?.currency || "cad") : null;
+    const rentDisp = formatCents(a?.rent_amount, a?.currency || "cad");
+    const depositDisp = a?.deposit_amount > 0 ? formatCents(a.deposit_amount, a?.currency || "cad") : null;
+    const lateFeeDisp = a?.late_fee_amount > 0 ? formatCents(a.late_fee_amount, a?.currency || "cad") : null;
 
-    // Header
     addTitle("Residential Tenancy Agreement");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
-    doc.text(`${a.governing_province_or_state || "Canada"} — ${a.country === "US" ? "United States" : "Canada"}`, pageWidth / 2, y, { align: "center" });
+    doc.text(`${a.governing_province_or_state || ""} — ${a.country === "US" ? "United States" : "Canada"}`, pageWidth / 2, y, { align: "center" });
     y += 28;
 
-    // Part 1
     addSectionHeader("Part 1 — The Parties");
     addSubHeader("LANDLORD");
     addRow("Legal Name", a.owner_legal_name);
@@ -138,7 +166,6 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
     addRow("Emergency Contact", a.tenant_emergency_contact_name);
     addRow("Emergency Phone", a.tenant_emergency_contact_phone);
 
-    // Part 2
     addSectionHeader("Part 2 — The Rental Unit");
     addRow("Property Address", a.property_address);
     addRow("Unit Number", a.unit_number);
@@ -148,20 +175,18 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
     if (a.utilities_included?.length > 0) addRow("Utilities Included", a.utilities_included.join(", "));
     if (a.appliances_included?.length > 0) addRow("Appliances Included", a.appliances_included.join(", "));
 
-    // Part 3
     addSectionHeader("Part 3 — Lease Term & Rent");
     addRow("Lease Type", a.lease_type === "fixed_term" ? "Fixed Term" : "Month-to-Month");
     addRow("Start Date", a.lease_start_date);
     addRow("End Date", a.lease_end_date);
-    addRow("Monthly Rent", rentDisplay);
+    addRow("Monthly Rent", rentDisp);
     addRow("Rent Due Day", a.rent_due_day ? `${a.rent_due_day}${["st","nd","rd"][a.rent_due_day - 1] || "th"} of each month` : null);
     addRow("Payment Method", a.payment_method?.replace(/_/g, " "));
-    if (depositDisplay) addRow("Security Deposit", depositDisplay);
-    if (depositDisplay) addRow("Deposit Held By", a.deposit_held_by);
+    if (depositDisp) addRow("Security Deposit", depositDisp);
+    if (depositDisp) addRow("Deposit Held By", a.deposit_held_by);
     addRow("Last Month's Rent", a.last_month_rent_collected ? "Collected" : "Not collected");
-    if (lateFeeDisplay) addRow("Late Fee", `${lateFeeDisplay} after ${a.late_fee_grace_days}-day grace period`);
+    if (lateFeeDisp) addRow("Late Fee", `${lateFeeDisp} after ${a.late_fee_grace_days}-day grace period`);
 
-    // Part 4
     addSectionHeader("Part 4 — Rules & Conditions");
     addRow("Smoking", a.smoking_permitted ? "Permitted" : "Not permitted");
     addRow("Pets", a.pets_permitted ? `Permitted${a.pet_details ? ` — ${a.pet_details}` : ""}` : "Not permitted");
@@ -171,46 +196,42 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
     if (a.house_rules) { y += 4; addSubHeader("House Rules"); addText(a.house_rules); }
     if (a.special_terms) { y += 4; addSubHeader("Special Terms"); addText(a.special_terms); }
 
-    // Part 5: Signatures
     addSectionHeader("Part 5 — Signatures");
     addSubHeader("LANDLORD SIGNATURE");
     addRow("Signed by", a.owner_signature || "Awaiting signature");
     addRow("Date", a.owner_signed_at ? format(new Date(a.owner_signed_at), "PPP") : "—");
+    if (a.owner_signed_ip) addRow("IP Address", a.owner_signed_ip);
     y += 8;
     addSubHeader("TENANT SIGNATURE");
     addRow("Signed by", a.tenant_signature || "Awaiting signature");
     addRow("Date", a.tenant_signed_at ? format(new Date(a.tenant_signed_at), "PPP") : "—");
+    if (a.tenant_signed_ip) addRow("IP Address", a.tenant_signed_ip);
 
-    // Footer on all pages
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
-      doc.text(`MiNest — Residential Tenancy Agreement · Page ${i} of ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: "center" });
+      doc.text(`MiNest — Residential Tenancy Agreement · ${a.form_version || ""} · Page ${i} of ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: "center" });
     }
 
     const fileName = `rental-agreement-${(a.listing_title || "agreement").replace(/\s+/g, "-").toLowerCase()}.pdf`;
     doc.save(fileName);
   };
 
-  const isTenant = user?.id === agreement?.tenant_user_id;
-  const isPending = agreement?.status === "pending_tenant";
-  const isAccepted = agreement?.status === "accepted";
-
-  const rentDisplay = formatCents(agreement?.rent_amount, agreement?.currency || "cad");
-  const depositDisplay = agreement?.deposit_amount > 0 ? formatCents(agreement.deposit_amount, agreement?.currency || "cad") : null;
-  const lateFeeDisplay = agreement?.late_fee_amount > 0 ? formatCents(agreement.late_fee_amount, agreement?.currency || "cad") : null;
-
-  const handleSign = async () => {
+  // Tenant signs a landlord-initiated offer: pending_tenant → accepted
+  const handleTenantSign = async () => {
     if (!signature.trim()) { toast.error("Please type your full legal name to sign."); return; }
     setLoading(true); setAction("sign");
     try {
+      const ip = await getClientIp();
       await entities.RentalAgreement.update(agreement.id, {
-        status: "active",
+        status: "accepted",  // FIX: was "active" — payment flow queries for "accepted"
         tenant_signed_at: new Date().toISOString(),
         tenant_signature: signature.trim(),
+        tenant_signed_ip: ip,
+        tenant_signed_user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : null)?.slice(0, 500),
       });
       await entities.Notification.create({
         user_id: agreement.owner_user_id,
@@ -223,6 +244,38 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
       toast.success("Agreement signed! The landlord has been notified.");
       onSigned?.();
     } catch (err) {
+      console.error('[RentalAgreementView] tenant sign failed:', err);
+      toast.error("Failed to sign agreement.");
+    } finally {
+      setLoading(false); setAction(null);
+    }
+  };
+
+  // Landlord countersigns a tenant-initiated request: pending_owner → accepted
+  const handleOwnerCountersign = async () => {
+    if (!signature.trim()) { toast.error("Please type your full legal name to sign."); return; }
+    setLoading(true); setAction("sign");
+    try {
+      const ip = await getClientIp();
+      await entities.RentalAgreement.update(agreement.id, {
+        status: "accepted",
+        owner_signed_at: new Date().toISOString(),
+        owner_signature: signature.trim(),
+        owner_signed_ip: ip,
+        owner_signed_user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : null)?.slice(0, 500),
+      });
+      await entities.Notification.create({
+        user_id: agreement.tenant_user_id,
+        type: "agreement_signed",
+        title: "Agreement Accepted",
+        body: "The landlord has signed your rental agreement.",
+        read: false,
+        data: { agreement_id: agreement.id },
+      });
+      toast.success("Agreement accepted and active.");
+      onSigned?.();
+    } catch (err) {
+      console.error('[RentalAgreementView] owner countersign failed:', err);
       toast.error("Failed to sign agreement.");
     } finally {
       setLoading(false); setAction(null);
@@ -230,13 +283,26 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
   };
 
   const handleDecline = async () => {
-    if (!window.confirm("Are you sure you want to decline this rental offer?")) return;
+    if (!window.confirm("Are you sure you want to decline this rental agreement?")) return;
     setLoading(true); setAction("decline");
     try {
       await entities.RentalAgreement.update(agreement.id, { status: "declined" });
-      toast.success("Offer declined.");
+      // Notify the other party
+      const otherUserId = isTenant ? agreement.owner_user_id : agreement.tenant_user_id;
+      if (otherUserId) {
+        await entities.Notification.create({
+          user_id: otherUserId,
+          type: "agreement_declined",
+          title: "Agreement Declined",
+          body: "The other party has declined the rental agreement.",
+          read: false,
+          data: { agreement_id: agreement.id },
+        });
+      }
+      toast.success("Agreement declined.");
       onDeclined?.();
     } catch (err) {
+      console.error('[RentalAgreementView] decline failed:', err);
       toast.error("Failed to decline.");
     } finally {
       setLoading(false); setAction(null);
@@ -245,13 +311,26 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
 
   if (!agreement) return null;
 
+  // Header banner variant per status
+  const statusBanner = (() => {
+    if (isAccepted)      return { icon: <CheckCircle2 className="w-4 h-4" />, text: "Agreement signed and active", cls: "bg-accent/10 border-accent/30 text-accent" };
+    if (isPendingTenant) return { icon: <Clock className="w-4 h-4" />, text: "Awaiting tenant signature", cls: "bg-amber-50 border-amber-200 text-amber-800" };
+    if (isPendingOwner)  return { icon: <Clock className="w-4 h-4" />, text: "Awaiting landlord signature", cls: "bg-amber-50 border-amber-200 text-amber-800" };
+    if (isDeclined)      return { icon: <XCircle className="w-4 h-4" />, text: "Agreement declined", cls: "bg-destructive/10 border-destructive/30 text-destructive" };
+    if (isExpired)       return { icon: <XCircle className="w-4 h-4" />, text: "Offer expired", cls: "bg-muted border-border text-muted-foreground" };
+    return null;
+  })();
+
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden print-agreement">
       {/* Header */}
       <div className="bg-primary text-primary-foreground p-6 text-center relative">
         <FileText className="w-8 h-8 mx-auto mb-2 opacity-80" />
         <h2 className="text-xl font-bold">Residential Tenancy Agreement</h2>
-        <p className="text-sm opacity-70 mt-1">{agreement.governing_province_or_state || "Canada"} — {agreement.country === "US" ? "United States" : "Canada"}</p>
+        <p className="text-sm opacity-70 mt-1">
+          {agreement.governing_province_or_state || ""}{agreement.governing_province_or_state ? " — " : ""}
+          {agreement.country === "US" ? "United States" : "Canada"}
+        </p>
         <button
           onClick={handleDownloadPDF}
           className="absolute top-4 right-4 flex items-center gap-1.5 text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg transition-colors"
@@ -263,9 +342,9 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
 
       <div className="p-6 space-y-0">
         {/* Status banner */}
-        {isAccepted && (
-          <div className="bg-accent/10 border border-accent/30 rounded-xl p-3 flex items-center gap-2 mb-6 text-sm text-accent font-semibold">
-            <CheckCircle2 className="w-4 h-4" /> Agreement signed and active
+        {statusBanner && (
+          <div className={`border rounded-xl p-3 flex items-center gap-2 mb-6 text-sm font-semibold ${statusBanner.cls}`}>
+            {statusBanner.icon} {statusBanner.text}
           </div>
         )}
 
@@ -376,11 +455,11 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
           </div>
         </Section>
 
-        {/* Tenant signing UI */}
-        {isTenant && isPending && (
+        {/* Tenant signing UI (landlord sent offer) */}
+        {isTenant && isPendingTenant && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-3 mt-4">
             <p className="text-sm font-semibold text-yellow-800">Sign this agreement</p>
-            <p className="text-xs text-yellow-700">Type your full legal name exactly as it appears above to electronically sign this agreement.</p>
+            <p className="text-xs text-yellow-700">Type your full legal name exactly as it appears above to electronically sign this agreement. Your IP address and the date/time will be recorded for legal audit purposes.</p>
             <Input
               placeholder={`Type "${agreement.tenant_legal_name || "your full legal name"}" to sign`}
               value={signature}
@@ -398,7 +477,7 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
                 Decline
               </Button>
               <Button
-                onClick={handleSign}
+                onClick={handleTenantSign}
                 disabled={loading || !signature.trim()}
                 className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
               >
@@ -409,8 +488,41 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
           </div>
         )}
 
+        {/* Landlord countersigning UI (tenant sent request) */}
+        {isOwner && isPendingOwner && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-3 mt-4">
+            <p className="text-sm font-semibold text-yellow-800">Review and countersign</p>
+            <p className="text-xs text-yellow-700">Review the details above. If everything looks correct, type your full legal name to accept and countersign this agreement. Your IP address and the date/time will be recorded for legal audit purposes.</p>
+            <Input
+              placeholder={`Type "${agreement.owner_legal_name || "your full legal name"}" to sign`}
+              value={signature}
+              onChange={e => setSignature(e.target.value)}
+              className="bg-white"
+            />
+            <div className="flex gap-2">
+              <Button
+                onClick={handleDecline}
+                variant="outline"
+                disabled={loading}
+                className="flex-1 text-destructive border-destructive hover:bg-destructive/5"
+              >
+                {loading && action === "decline" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <XCircle className="w-4 h-4 mr-1" />}
+                Decline
+              </Button>
+              <Button
+                onClick={handleOwnerCountersign}
+                disabled={loading || !signature.trim()}
+                className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
+                {loading && action === "sign" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                Sign & Accept
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Expiry notice */}
-        {isPending && agreement.offer_expires_at && (
+        {(isPendingTenant || isPendingOwner) && agreement.offer_expires_at && (
           <p className="text-xs text-center text-muted-foreground mt-2">
             This offer expires on {format(new Date(agreement.offer_expires_at), "PPP")}
           </p>
