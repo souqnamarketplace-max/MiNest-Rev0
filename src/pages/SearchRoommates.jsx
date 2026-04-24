@@ -96,6 +96,7 @@ export default function SearchRoommates() {
 
       {/* Results */}
       {isLoading ? (
+        <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-muted border-t-accent rounded-full animate-spin" /></div>
       ) : seekers.length === 0 ? (
         <div className="text-center py-20">
           <User className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
