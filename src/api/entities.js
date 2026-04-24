@@ -63,13 +63,35 @@ function aliasRows(data) {
 function makeEntity(table) {
   return {
     filter: async (filters = {}, sort = '-created_at', limit = 100) => {
-      let query = supabase.from(table).select('*');
-      query = applyFilters(query, filters);
-      query = applySort(query, sort);
-      if (limit) query = query.limit(limit);
-      const { data, error } = await query;
-      if (error) throw error;
-      return aliasRows(data ?? []);
+      // Supabase caps at 1000 rows per request. For larger limits, paginate.
+      if (limit <= 1000) {
+        let query = supabase.from(table).select('*');
+        query = applyFilters(query, filters);
+        query = applySort(query, sort);
+        if (limit) query = query.limit(limit);
+        const { data, error } = await query;
+        if (error) throw error;
+        return aliasRows(data ?? []);
+      }
+      
+      // Paginated fetch for large limits
+      let allData = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (from < limit) {
+        const to = Math.min(from + pageSize - 1, limit - 1);
+        let query = supabase.from(table).select('*');
+        query = applyFilters(query, filters);
+        query = applySort(query, sort);
+        query = query.range(from, to);
+        const { data, error } = await query;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allData = allData.concat(data);
+        if (data.length < pageSize) break; // No more rows
+        from += pageSize;
+      }
+      return aliasRows(allData);
     },
     // Lightweight filter — only fetches specified columns (saves bandwidth + time)
     filterSelect: async (columns, filters = {}, sort = '-created_at', limit = 100) => {

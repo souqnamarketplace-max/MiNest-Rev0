@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,10 +8,11 @@ import { Search, Map, Bell, Bookmark, X, ChevronLeft, ChevronRight, Loader2, Lis
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import ListingCard from "@/components/listings/ListingCard";
-import MapView from "@/components/search/MapView";
+const MapView = lazy(() => import("@/components/search/MapView"));
 import SearchLayout from "@/components/search/SearchLayout";
 import SaveSearchButton from "@/components/search/SaveSearchButton";
 import ActiveFilterChips from "@/components/search/ActiveFilterChips";
+import BrandedLoader from "@/components/common/BrandedLoader";
 import { useAuth } from "@/lib/AuthContext";
 import { useCountry } from "@/lib/CountryContext";
 import { matchesParkingFilter } from "@/lib/parkingHelpers";
@@ -74,7 +75,7 @@ export default function SearchRooms() {
       return profiles[0] || null;
     },
     enabled: !!user,
-    staleTime: 60000,
+    staleTime: 300000, // 5 min — location prefs rarely change
   });
 
   // ==========================================
@@ -204,7 +205,7 @@ export default function SearchRooms() {
     queryKey: ["listings", filterQuery, filters.sort],
     queryFn: async () => {
       try {
-        return await entities.Listing.filter(filterQuery, filters.sort, 100);
+        return await entities.Listing.filter(filterQuery, filters.sort, 5000);
       } catch {
         return [];
       }
@@ -282,13 +283,8 @@ export default function SearchRooms() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Real-time subscription
-  useEffect(() => {
-    const unsub = entities.Listing.subscribe((event) => {
-      if (event.type === "create" && event.data?.status === "active") refetch();
-    });
-    return () => unsub();
-  }, [refetch]);
+  // Real-time subscription removed — listings don't need live updates.
+  // New listings show on next search or page refresh. This saves one WebSocket channel per user.
 
   // Favorites
   const favQueryKey = ["favorites", user?.id];
@@ -366,17 +362,7 @@ export default function SearchRooms() {
   const listingGrid = (
     <>
       {isLoading && !error ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
-          {Array(6).fill(0).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-border overflow-hidden">
-              <Skeleton className="aspect-video" />
-              <div className="p-4 space-y-2">
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <BrandedLoader messages={["Finding rooms near you...", "Checking availability...", "Almost ready..."]} />
       ) : listings.length === 0 ? (
         <div className="text-center py-12">
           <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
@@ -487,14 +473,7 @@ export default function SearchRooms() {
 
           {/* Listings */}
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-3">
-              {Array(6).fill(0).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-border overflow-hidden">
-                  <Skeleton className="aspect-video" />
-                  <div className="p-3 space-y-2"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-4 w-1/2" /></div>
-                </div>
-              ))}
-            </div>
+            <BrandedLoader messages={["Finding rooms near you...", "Checking availability...", "Almost ready..."]} />
           ) : listings.length === 0 ? (
             <div className="text-center py-16">
               <Search className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
@@ -549,8 +528,10 @@ export default function SearchRooms() {
         {/* Right: Sticky Map */}
         <div className="w-1/2 xl:w-[45%] sticky top-0">
           {listings.length > 0 ? (
-            <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
-              onListingHover={setHoveredListingId} />
+            <Suspense fallback={<div className="w-full h-full bg-muted/30 flex items-center justify-center"><div className="w-6 h-6 border-2 border-muted border-t-accent rounded-full animate-spin" /></div>}>
+              <MapView listings={listings} filters={filters} activeListingId={hoveredListingId}
+                onListingHover={setHoveredListingId} />
+            </Suspense>
           ) : (
             <div className="w-full h-full bg-muted/30 flex items-center justify-center">
               <p className="text-sm text-muted-foreground">No listings to show on map</p>
@@ -619,8 +600,8 @@ export default function SearchRooms() {
             </button>
           </div>
           <div className="w-full h-full pt-12">
-            {listings.length > 0 && <MapView listings={listings} filters={filters} isMobile={true}
-              onListingHover={setHoveredListingId} />}
+            {listings.length > 0 && <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-6 h-6 border-2 border-muted border-t-accent rounded-full animate-spin" /></div>}><MapView listings={listings} filters={filters} isMobile={true}
+              onListingHover={setHoveredListingId} /></Suspense>}
           </div>
         </div>
       )}

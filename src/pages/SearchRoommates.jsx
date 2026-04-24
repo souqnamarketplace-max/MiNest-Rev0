@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import ShareButton from "@/components/common/ShareButton";
 import SignInRequiredModal from "@/components/modals/SignInRequiredModal";
+import BrandedLoader from "@/components/common/BrandedLoader";
 
 export default function SearchRoommates() {
   const { country: globalCountry } = useCountry();
@@ -40,7 +41,7 @@ export default function SearchRoommates() {
 
   const { data: allSeekers = [], isLoading, error } = useQuery({
     queryKey: ["seekers", filterQuery],
-    queryFn: () => entities.SeekerProfile.filter(filterQuery, "-created_at", 200),
+    queryFn: () => entities.SeekerProfile.filter(filterQuery, "-created_at", 5000),
     staleTime: 30000,
   });
 
@@ -96,11 +97,7 @@ export default function SearchRoommates() {
 
       {/* Results */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {Array(3).fill(0).map((_, i) => (
-            <div key={i} className="rounded-2xl border p-5"><Skeleton className="h-40" /></div>
-          ))}
-        </div>
+        <BrandedLoader messages={["Finding roommates...", "Matching preferences...", "Almost ready..."]} />
       ) : seekers.length === 0 ? (
         <div className="text-center py-20">
           <User className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
