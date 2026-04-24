@@ -82,16 +82,16 @@ export default function AuditLog() {
     queryFn: async () => {
       const names = { listing: {}, user_profile: {}, saved_search: {} };
       if (entityIds.listing.length > 0) {
-        const { data } = await supabase.from("listings").select("id, title, slug").in("id", entityIds.listing);
-        data?.forEach((l) => { names.listing[l.id] = { label: l.title || "(untitled)", link: `/listing/${l.slug || l.id}` }; });
+        const { data } = await supabase.from("listings").select("id, title, slug, display_id").in("id", entityIds.listing);
+        data?.forEach((l) => { names.listing[l.id] = { label: l.title || "(untitled)", link: `/listing/${l.slug || l.id}`, displayId: l.display_id }; });
       }
       if (entityIds.user_profile.length > 0) {
-        const { data } = await supabase.from("user_profiles").select("user_id, email, display_name").in("user_id", entityIds.user_profile);
-        data?.forEach((u) => { names.user_profile[u.user_id] = { label: u.display_name || u.email || "(no name)", subLabel: u.email }; });
+        const { data } = await supabase.from("user_profiles").select("user_id, email, display_name, display_id").in("user_id", entityIds.user_profile);
+        data?.forEach((u) => { names.user_profile[u.user_id] = { label: u.display_name || u.email || "(no name)", subLabel: u.email, displayId: u.display_id }; });
       }
       if (entityIds.saved_search.length > 0) {
-        const { data } = await supabase.from("saved_searches").select("id, name").in("id", entityIds.saved_search);
-        data?.forEach((s) => { names.saved_search[s.id] = { label: s.name || "(unnamed)" }; });
+        const { data } = await supabase.from("saved_searches").select("id, name, display_id").in("id", entityIds.saved_search);
+        data?.forEach((s) => { names.saved_search[s.id] = { label: s.name || "(unnamed)", displayId: s.display_id }; });
       }
       return names;
     },
@@ -249,6 +249,18 @@ export default function AuditLog() {
                       {log.entity_id && (
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-muted-foreground text-sm">Target: </span>
+                          {resolved?.displayId && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(resolved.displayId);
+                                toast.success(`Copied ${resolved.displayId}`);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-md text-xs font-mono font-semibold"
+                              title={`Display ID — click to copy. Full UUID: ${log.entity_id}`}
+                            >
+                              {resolved.displayId}
+                            </button>
+                          )}
                           {resolved ? (
                             <>
                               {resolved.link ? (
@@ -264,19 +276,21 @@ export default function AuditLog() {
                               )}
                             </>
                           ) : (
-                            <span className="font-medium text-sm">—</span>
+                            <>
+                              <span className="text-xs text-muted-foreground italic">(deleted or not loaded)</span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(log.entity_id);
+                                  toast.success("UUID copied");
+                                }}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 hover:bg-muted rounded text-[10px] font-mono text-muted-foreground"
+                                title={`Full UUID: ${log.entity_id}`}
+                              >
+                                <Copy className="w-2.5 h-2.5" />
+                                {log.entity_id.slice(0, 8)}
+                              </button>
+                            </>
                           )}
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(log.entity_id);
-                              toast.success("ID copied");
-                            }}
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-muted/50 hover:bg-muted rounded text-[10px] font-mono text-muted-foreground"
-                            title={`Full ID: ${log.entity_id}`}
-                          >
-                            <Copy className="w-2.5 h-2.5" />
-                            {log.entity_id.slice(0, 8)}
-                          </button>
                         </div>
                       )}
                     </div>

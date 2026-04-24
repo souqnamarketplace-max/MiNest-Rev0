@@ -223,7 +223,7 @@ function ListingsTab({ onEdit }) {
   };
 
   const handleDelete = async (listing) => {
-    if (!window.confirm(`Delete "${listing.title}"?\n\nThis cannot be undone. The listing will be removed permanently.`)) return;
+    if (!window.confirm(`Delete "${listing.title}" (${listing.display_id || listing.id.slice(0, 8)})?\n\nThis cannot be undone. The listing will be removed permanently.`)) return;
     try {
       await entities.Listing.delete(listing.id);
       toast.success("Listing deleted");
@@ -254,6 +254,7 @@ function ListingsTab({ onEdit }) {
           l.title?.toLowerCase().includes(q) ||
           l.city?.toLowerCase().includes(q) ||
           l.slug?.toLowerCase().includes(q) ||
+          l.display_id?.toLowerCase().includes(q) ||
           l.id?.toLowerCase().includes(q);
         if (!matches) return false;
       }
@@ -280,7 +281,7 @@ function ListingsTab({ onEdit }) {
         <div className="flex-1 relative">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
-            placeholder="Search by title, city, or ID..."
+            placeholder="Search by L-ID, title, city, or slug..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-9 text-sm"
@@ -345,7 +346,23 @@ function ListingsTab({ onEdit }) {
               {l.cover_photo_url && <img src={l.cover_photo_url} alt="" className="w-full h-full object-cover" />}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{l.title}</p>
+              <div className="flex items-center gap-2 mb-0.5">
+                {l.display_id && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(l.display_id);
+                      toast.success(`Copied ${l.display_id}`);
+                    }}
+                    className="inline-flex items-center px-1.5 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent rounded text-[10px] font-mono font-semibold flex-shrink-0"
+                    title={`Click to copy. Full UUID: ${l.id}`}
+                  >
+                    {l.display_id}
+                  </button>
+                )}
+                <p className="font-medium text-sm truncate">{l.title}</p>
+              </div>
               <p className="text-xs text-muted-foreground truncate">
                 {l.city}{l.province_or_state ? `, ${l.province_or_state}` : ""}
                 {l.rent_amount ? ` · $${l.rent_amount}/mo` : ""}

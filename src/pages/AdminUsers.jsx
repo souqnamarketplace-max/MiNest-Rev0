@@ -34,11 +34,11 @@ export default function AdminUsers() {
     queryFn: async () => {
       let q = supabase
         .from("user_profiles")
-        .select("user_id, email, display_name, country, city, is_admin, created_at")
+        .select("user_id, email, display_name, country, city, is_admin, display_id, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
       if (search.trim()) {
-        q = q.or(`email.ilike.%${search}%,display_name.ilike.%${search}%`);
+        q = q.or(`email.ilike.%${search}%,display_name.ilike.%${search}%,display_id.ilike.%${search}%`);
       }
       const { data, error } = await q;
       if (error) throw error;
@@ -112,7 +112,7 @@ export default function AdminUsers() {
         <div className="relative">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
-            placeholder="Search by email or name..."
+            placeholder="Search by U-ID, email, or name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -135,6 +135,18 @@ export default function AdminUsers() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {u.display_id && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(u.display_id);
+                          toast.success(`Copied ${u.display_id}`);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-md text-xs font-mono font-semibold flex-shrink-0"
+                        title={`Display ID — click to copy. Full UUID: ${u.user_id}`}
+                      >
+                        {u.display_id}
+                      </button>
+                    )}
                     <p className="text-sm font-semibold">{u.display_name || "(no name)"}</p>
                     {u.is_admin && <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">Admin</Badge>}
                   </div>

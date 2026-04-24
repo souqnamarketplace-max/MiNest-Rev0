@@ -56,7 +56,7 @@ export default function FraudSignals() {
     queryFn: async () => {
       const { data: listings } = await supabase
         .from("listings")
-        .select("id, title, slug, city, rent_normalized_monthly, owner_user_id, created_at")
+        .select("id, title, slug, city, rent_normalized_monthly, owner_user_id, created_at, display_id")
         .eq("status", "active")
         .not("city", "is", null)
         .not("rent_normalized_monthly", "is", null)
@@ -222,7 +222,14 @@ export default function FraudSignals() {
           <Link to={`/listing/${l.slug || l.id}`} key={l.id} className="block bg-card rounded-xl border border-border p-4 hover:border-accent/30">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{l.title}</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  {l.display_id && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 bg-accent/10 text-accent rounded text-[10px] font-mono font-semibold flex-shrink-0">
+                      {l.display_id}
+                    </span>
+                  )}
+                  <p className="text-sm font-semibold truncate">{l.title}</p>
+                </div>
                 <p className="text-xs text-muted-foreground">{l.city} · ${l.rent_normalized_monthly}/mo (city median: ${l.city_median})</p>
               </div>
               <Badge className="bg-orange-100 text-orange-700 flex-shrink-0">-{l.discount_pct}%</Badge>

@@ -91,7 +91,20 @@ export default function ListingModerationCard({ listing, onActionComplete }) {
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              {listing.display_id && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(listing.display_id);
+                    toast.success(`Copied ${listing.display_id}`);
+                  }}
+                  className="inline-flex items-center px-1.5 py-0.5 bg-accent/10 hover:bg-accent/20 text-accent rounded text-[10px] font-mono font-semibold flex-shrink-0"
+                  title={`Click to copy. Full UUID: ${listing.id}`}
+                >
+                  {listing.display_id}
+                </button>
+              )}
               <h3 className="font-semibold text-foreground truncate">{listing.title}</h3>
               <Badge className={statusColor[listing.status] || "bg-gray-100"}>
                 {listing.status}
