@@ -234,8 +234,9 @@ function ListingsTab({ onEdit }) {
 
       if (debouncedSearch) {
         const s = debouncedSearch;
-        // ilike works for partial matches on text columns
-        q = q.or(`title.ilike.%${s}%,city.ilike.%${s}%,slug.ilike.%${s}%,display_id.ilike.%${s}%,id.ilike.%${s}%`);
+        // ilike on text columns only. `id` is a uuid type — can't be ilike'd.
+        // display_id is the admin-friendly text ID; full UUIDs aren't useful to search anyway.
+        q = q.or(`title.ilike.%${s}%,city.ilike.%${s}%,slug.ilike.%${s}%,display_id.ilike.%${s}%`);
       }
 
       const { data, error, count } = await q;
