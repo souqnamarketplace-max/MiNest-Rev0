@@ -14,6 +14,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, ExternalLink, Image as ImageIcon, ShieldCheck, ZoomIn } from "lucide-react";
 import { format } from "date-fns";
+import { logAuditEvent, AuditEvents } from "@/lib/auditLog";
 
 const TYPE_LABELS = {
   id_card: "Government ID Card",
@@ -88,7 +89,7 @@ function DocumentFileRow({ doc, onOpen }) {
   );
 }
 
-export default function RentalDocumentsViewer({ documents = [], visible = true }) {
+export default function RentalDocumentsViewer({ documents = [], visible = true, agreementId = null }) {
   if (!visible) return null;
   if (!documents || documents.length === 0) {
     return (
@@ -100,6 +101,17 @@ export default function RentalDocumentsViewer({ documents = [], visible = true }
 
   const open = (doc) => {
     if (!doc.url) return;
+    // Audit log — record who viewed this document and when. Best-effort.
+    logAuditEvent({
+      action: AuditEvents.DOCUMENT_VIEWED,
+      targetTable: "rental_agreements",
+      targetId: agreementId,
+      metadata: {
+        document_type: doc.type ?? null,
+        document_filename: doc.filename ?? null,
+        document_path: doc.path ?? null,
+      },
+    });
     window.open(doc.url, "_blank", "noopener,noreferrer");
   };
 

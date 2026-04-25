@@ -22,6 +22,7 @@ import RentalDocumentsViewer from "@/components/payments/RentalDocumentsViewer";
 import TenantInfoForm, { validateTenantInfo } from "@/components/payments/TenantInfoForm";
 import TenantIdUploader from "@/components/payments/TenantIdUploader";
 import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
+import { logAuditEvent, AuditEvents } from "@/lib/auditLog";
 
 // Best-effort IP capture. Does not block signing if it fails.
 async function getClientIp() {
@@ -69,6 +70,25 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
     tenant_emergency_contact_phone: agreement?.tenant_emergency_contact_phone || "",
   });
   const [tenantDocs, setTenantDocs] = useState(agreement?.tenant_id_documents || []);
+
+  // Log a single 'agreement_viewed' event when the component first mounts
+  // for a given agreement id. Best-effort, non-blocking.
+  React.useEffect(() => {
+    if (!agreement?.id || !user?.id) return;
+    logAuditEvent({
+      action: AuditEvents.AGREEMENT_VIEWED,
+      targetTable: "rental_agreements",
+      targetId: agreement.id,
+      metadata: {
+        role: user.id === agreement.tenant_user_id ? "tenant"
+            : user.id === agreement.owner_user_id ? "landlord"
+            : "other",
+        agreement_number: agreement.agreement_number ?? null,
+        status: agreement.status,
+      },
+    });
+     
+  }, [agreement?.id]);
 
   const isTenant = user?.id === agreement?.tenant_user_id;
   const isOwner = user?.id === agreement?.owner_user_id;
@@ -156,6 +176,19 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
         console.warn('[RentalAgreementView] system message post failed (non-fatal):', sysErr);
       }
 
+      // Audit log — best-effort, non-blocking.
+      logAuditEvent({
+        action: AuditEvents.AGREEMENT_SIGNED,
+        targetTable: "rental_agreements",
+        targetId: agreement.id,
+        metadata: {
+          role: "tenant",
+          agreement_number: agreement.agreement_number ?? null,
+          listing_title: agreement.listing_title ?? null,
+          status_to: "accepted",
+        },
+      });
+
       toast.success("Agreement signed! The landlord has been notified.");
       onSigned?.();
     } catch (err) {
@@ -215,6 +248,17 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
         });
       }
       toast.success("Agreement declined.");
+      // Audit log — best-effort.
+      logAuditEvent({
+        action: AuditEvents.AGREEMENT_DECLINED,
+        targetTable: "rental_agreements",
+        targetId: agreement.id,
+        metadata: {
+          role: isTenant ? "tenant" : "landlord",
+          agreement_number: agreement.agreement_number ?? null,
+          listing_title: agreement.listing_title ?? null,
+        },
+      });
       onDeclined?.();
     } catch (err) {
       console.error('[RentalAgreementView] decline failed:', err);
@@ -386,6 +430,7 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
             <RentalDocumentsViewer
               documents={agreement.tenant_id_documents || []}
               visible={true}
+              agreementId={agreement.id}
             />
           </Section>
         )}

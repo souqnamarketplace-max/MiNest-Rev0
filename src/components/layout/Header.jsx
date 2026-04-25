@@ -4,7 +4,7 @@ import { entities } from '@/api/entities';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Search, PlusCircle, User, LogOut, Heart, MessageSquare, Home, CreditCard, LayoutDashboard } from 'lucide-react';
+import { Menu, Search, PlusCircle, User, LogOut, Heart, MessageSquare, Home, CreditCard, LayoutDashboard, FileText } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import CountrySwitcher from '@/components/layout/CountrySwitcher';
@@ -59,6 +59,7 @@ export default function Header() {
 
   const userLinks = user ? [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/rentals', label: 'Rentals', icon: FileText },
     { to: '/create-listing', label: 'Post a Room', icon: PlusCircle },
     { to: '/messages', label: 'Messages', icon: MessageSquare },
     { to: '/favorites', label: 'Favorites', icon: Heart },
@@ -114,6 +115,7 @@ export default function Header() {
                     </Button>
                   </Link>
                   <Link to="/dashboard"><Button variant="ghost" size="sm">Dashboard</Button></Link>
+                  <Link to="/rentals"><Button variant="ghost" size="sm">Rentals</Button></Link>
                   {userProfile?.is_admin && <Link to="/admin"><Button variant="ghost" size="sm" className="text-accent">Admin</Button></Link>}
                   <Button variant="ghost" size="sm" aria-label="Sign out" onClick={() => logout('/')}><LogOut className="w-4 h-4" /></Button>
                 </>

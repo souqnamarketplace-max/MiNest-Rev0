@@ -23,6 +23,7 @@ import { Loader2, ChevronRight, ChevronLeft, FileText, CheckCircle2 } from "luci
 import JurisdictionPicker from "@/components/payments/JurisdictionPicker";
 import { detectJurisdictionFromListing, getFormVersion, findJurisdiction } from "@/lib/jurisdictions";
 import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
+import { logAuditEvent, AuditEvents } from "@/lib/auditLog";
 
 const STEPS = ["Your Info", "Property & Lease", "Financial Terms", "Rules & Sign"];
 
@@ -278,6 +279,20 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       }
 
       toast.success("Rental offer sent! The tenant will be notified.");
+      // Audit log — best-effort, non-blocking.
+      logAuditEvent({
+        action: AuditEvents.AGREEMENT_CREATED,
+        targetTable: "rental_agreements",
+        targetId: created?.id ?? null,
+        metadata: {
+          role: "landlord",
+          agreement_number: created?.agreement_number ?? null,
+          listing_title: listing?.title ?? null,
+          tenant_user_id: tenantId,
+          country: created?.country ?? null,
+          governing_province_or_state: created?.governing_province_or_state ?? null,
+        },
+      });
       onOpenChange(false);
       setStep(0);
     } catch (err) {

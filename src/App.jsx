@@ -69,6 +69,7 @@ const FraudSignals = lazyWithRetry(() => import('@/pages/FraudSignals'));
 const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'));
 const MyPayments = lazyWithRetry(() => import('@/pages/MyPayments'));
 const RentalAgreementPage = lazyWithRetry(() => import('@/pages/RentalAgreementPage'));
+const Rentals = lazyWithRetry(() => import('@/pages/Rentals'));
 const OwnerPaymentSetup = lazyWithRetry(() => import('@/pages/OwnerPaymentSetup'));
 const CityRoomsPage = lazyWithRetry(() => import('@/pages/CityRoomsPage'));
 const PageNotFound = lazyWithRetry(() => import('./lib/PageNotFound'));
@@ -147,6 +148,7 @@ function AnimatedRoutes() {
               <Route path="/verification-flow" element={<ProtectedRoute><VerificationFlow /></ProtectedRoute>} />
               <Route path="/my-payments" element={<ProtectedRoute><MyPayments /></ProtectedRoute>} />
               <Route path="/rentals/:id" element={<ProtectedRoute><RentalAgreementPage /></ProtectedRoute>} />
+              <Route path="/rentals" element={<ProtectedRoute><Rentals /></ProtectedRoute>} />
               <Route path="/owner-payment-setup" element={<ProtectedRoute><OwnerPaymentSetup /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
               <Route path="/admin/email-test" element={<ProtectedRoute><AdminEmailTest /></ProtectedRoute>} />
