@@ -182,9 +182,17 @@ export async function respondToTermination({ agreement, actorUserId, accept, not
   if (agreement.termination_status !== "requested" && agreement.termination_status !== "countered") {
     throw new Error("No active termination request to respond to.");
   }
-  // The actor must be the OTHER party (not the requester)
-  if (agreement.termination_requested_by === actorUserId) {
+  // Identify who the responder should be:
+  //   - In 'requested' state, the responder is the OTHER party (not the requester).
+  //   - In 'countered' state, the responder is the ORIGINAL REQUESTER (because the
+  //     counterparty already proposed new terms and now it's the requester's turn
+  //     to accept/decline the counter).
+  const isRequester = agreement.termination_requested_by === actorUserId;
+  if (agreement.termination_status === "requested" && isRequester) {
     throw new Error("The requester can't accept their own termination request.");
+  }
+  if (agreement.termination_status === "countered" && !isRequester) {
+    throw new Error("Only the original requester can respond to a counter-offer.");
   }
   const role = roleOf(agreement, actorUserId);
   if (role === "other") throw new Error("Only landlord or tenant can respond.");
@@ -213,14 +221,22 @@ export async function respondToTermination({ agreement, actorUserId, accept, not
     },
   });
 
-  if (agreement.termination_requested_by) {
+  // Notify the OTHER party. In the 'requested' flow, the responder is the
+  // counterparty so we notify the original requester. In the 'countered'
+  // flow, the responder is the original requester, so we notify the
+  // counterparty (whoever sent the counter — captured in
+  // termination_responded_by from the previous step).
+  const notifyTarget = isRequester
+    ? agreement.termination_responded_by
+    : agreement.termination_requested_by;
+  if (notifyTarget) {
     notify({
-      userId: agreement.termination_requested_by,
+      userId: notifyTarget,
       type: accept ? "termination_accepted" : "termination_declined",
       title: accept ? "Termination Accepted" : "Termination Declined",
       body: accept
-        ? "The counterparty accepted your termination request. Sign to make it final."
-        : "The counterparty declined your termination request.",
+        ? "The counterparty accepted the termination terms. Sign to make it final."
+        : "The counterparty declined the termination.",
       agreementId: agreement.id,
     });
   }
