@@ -19,7 +19,10 @@
  * to match the deployed schema. Callers don't need to know about the
  * column rename.
  *
- * Action naming convention: lowercase snake_case. e.g. agreement_signed.
+ * IMPORTANT: We deliberately do NOT call .select() on the returned insert.
+ * The deployed RLS only grants SELECT to admins, so a non-admin INSERT that
+ * also tries to read back the row would fail with an RLS violation. We
+ * issue a write-only insert and discard the response.
  */
 import { supabase } from "@/lib/supabase";
 
@@ -37,9 +40,7 @@ async function getIp() {
   }
 }
 
-// Cache the actor profile (email + is_admin) for the session so we don't
-// re-fetch on every audit event. Keyed by user id; reset on auth change is
-// not needed because page reloads on logout flush the module.
+// Cache the actor profile for the session so we don't re-fetch on every event.
 let _actorCache = null;
 async function getActor() {
   if (_actorCache) return _actorCache;
@@ -69,13 +70,13 @@ async function getActor() {
 }
 
 /**
- * Insert one audit log row. Returns the created row, or null on failure.
+ * Insert one audit log row. Returns true on apparent success, false on failure.
  * NEVER throws — caller doesn't need to wrap it.
  *
  * @param {object} args
  * @param {string} args.action       — e.g. 'agreement_signed'
- * @param {string} args.targetTable  — e.g. 'rental_agreements' (mapped to entity_type)
- * @param {string|null} args.targetId — e.g. uuid string (mapped to entity_id)
+ * @param {string} args.targetTable  — mapped to entity_type
+ * @param {string|null} args.targetId — mapped to entity_id
  * @param {object} args.metadata     — arbitrary JSON
  */
 export async function logAuditEvent({ action, targetTable, targetId = null, metadata = {} }) {
@@ -83,43 +84,45 @@ export async function logAuditEvent({ action, targetTable, targetId = null, meta
     if (typeof console !== "undefined") {
       console.warn("[auditLog] missing required fields", { action, targetTable });
     }
-    return null;
+    return false;
   }
   try {
     const actor = await getActor();
-    if (!actor?.id) return null;
+    if (!actor?.id) return false;
     const ip = await getIp();
     const ua = (typeof navigator !== "undefined" ? navigator.userAgent : null)?.slice(0, 500) || null;
-    const { data, error } = await supabase
+    // Write-only insert — do NOT chain .select() because the deployed RLS
+    // only allows admins to SELECT. A non-admin doing insert+select would
+    // fail with a misleading "row-level security policy" error even though
+    // the insert itself was permitted.
+    const { error } = await supabase
       .from("audit_log")
       .insert({
         actor_user_id: actor.id,
         actor_email: actor.email,
         actor_is_admin: actor.is_admin,
         entity_type: targetTable,
-        // entity_id is text in the deployed schema (not uuid) — coerce to string
         entity_id: targetId != null ? String(targetId) : null,
         action,
         metadata: metadata || {},
         ip_address: ip,
         user_agent: ua,
-      })
-      .select()
-      .single();
+      });
     if (error) {
       console.warn("[auditLog] insert failed (non-fatal):", error.message);
-      return null;
+      return false;
     }
-    return data;
+    return true;
   } catch (err) {
     console.warn("[auditLog] threw (non-fatal):", err?.message || err);
-    return null;
+    return false;
   }
 }
 
 /**
  * Fetch audit events for a specific target. Maps targetTable/targetId back to
- * entity_type/entity_id for the query. RLS limits visibility.
+ * entity_type/entity_id for the query. Existing RLS only lets admins SELECT,
+ * so non-admin callers will get an empty array — that's by design.
  */
 export async function fetchAuditEventsForTarget({ targetTable, targetId, limit = 200 }) {
   if (!targetTable || !targetId) return [];
