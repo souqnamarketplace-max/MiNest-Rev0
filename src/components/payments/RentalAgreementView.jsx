@@ -18,6 +18,8 @@ import { Loader2, FileText, CheckCircle2, XCircle, Download, Clock } from "lucid
 import { formatCents } from "@/lib/paymentHelpers";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
+import TenantInfoForm, { validateTenantInfo } from "@/components/payments/TenantInfoForm";
+import TenantIdUploader from "@/components/payments/TenantIdUploader";
 
 // Best-effort IP capture. Does not block signing if it fails.
 async function getClientIp() {
@@ -55,6 +57,16 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
   const [signature, setSignature] = useState("");
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState(null);
+  const [tenantInfo, setTenantInfo] = useState({
+    tenant_legal_name: agreement?.tenant_legal_name || "",
+    tenant_phone: agreement?.tenant_phone || "",
+    tenant_date_of_birth: agreement?.tenant_date_of_birth || "",
+    tenant_current_address: agreement?.tenant_current_address || "",
+    tenant_employer: agreement?.tenant_employer || "",
+    tenant_emergency_contact_name: agreement?.tenant_emergency_contact_name || "",
+    tenant_emergency_contact_phone: agreement?.tenant_emergency_contact_phone || "",
+  });
+  const [tenantDocs, setTenantDocs] = useState(agreement?.tenant_id_documents || []);
 
   const isTenant = user?.id === agreement?.tenant_user_id;
   const isOwner = user?.id === agreement?.owner_user_id;
@@ -222,12 +234,26 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
 
   // Tenant signs a landlord-initiated offer: pending_tenant → accepted
   const handleTenantSign = async () => {
+    // Validate tenant personal info first
+    const infoError = validateTenantInfo(tenantInfo);
+    if (infoError) { toast.error(infoError); return; }
+    if (!tenantDocs || tenantDocs.length === 0) {
+      toast.error("Please upload at least one ID document (passport or government ID).");
+      return;
+    }
     if (!signature.trim()) { toast.error("Please type your full legal name to sign."); return; }
+    if (signature.trim().toLowerCase() !== (tenantInfo.tenant_legal_name || "").trim().toLowerCase()) {
+      toast.error("Your signature must match your legal name exactly.");
+      return;
+    }
+
     setLoading(true); setAction("sign");
     try {
       const ip = await getClientIp();
       await entities.RentalAgreement.update(agreement.id, {
-        status: "accepted",  // FIX: was "active" — payment flow queries for "accepted"
+        ...tenantInfo,
+        tenant_id_documents: tenantDocs,
+        status: "accepted",
         tenant_signed_at: new Date().toISOString(),
         tenant_signature: signature.trim(),
         tenant_signed_ip: ip,
@@ -455,17 +481,39 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
           </div>
         </Section>
 
-        {/* Tenant signing UI (landlord sent offer) */}
+        {/* Tenant signing UI (landlord sent offer) — fill personal info + upload ID + sign */}
         {isTenant && isPendingTenant && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-3 mt-4">
-            <p className="text-sm font-semibold text-yellow-800">Sign this agreement</p>
-            <p className="text-xs text-yellow-700">Type your full legal name exactly as it appears above to electronically sign this agreement. Your IP address and the date/time will be recorded for legal audit purposes.</p>
-            <Input
-              placeholder={`Type "${agreement.tenant_legal_name || "your full legal name"}" to sign`}
-              value={signature}
-              onChange={e => setSignature(e.target.value)}
-              className="bg-white"
-            />
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-4 mt-4">
+            <p className="text-sm font-semibold text-yellow-800">Review, fill in your information, and sign</p>
+            <p className="text-xs text-yellow-700">
+              Please fill in your personal information below, upload at least one valid ID document (passport or government-issued ID), and type your full legal name to sign. Your IP address and timestamp will be recorded for legal audit purposes.
+            </p>
+
+            {/* Tenant personal info — required */}
+            <div className="bg-white rounded-lg p-4 border border-yellow-300">
+              <TenantInfoForm value={tenantInfo} onChange={setTenantInfo} />
+            </div>
+
+            {/* ID upload — required */}
+            <div className="bg-white rounded-lg p-4 border border-yellow-300 space-y-2">
+              <p className="text-sm font-bold text-foreground">ID Verification (Required)</p>
+              <p className="text-xs text-muted-foreground">Upload at least one piece of government ID. The landlord will review for identity verification.</p>
+              <TenantIdUploader agreementId={agreement.id} value={tenantDocs} onChange={setTenantDocs} />
+            </div>
+
+            {/* Signature */}
+            <div className="bg-white rounded-lg p-4 border-2 border-accent/30 space-y-2">
+              <p className="text-sm font-bold text-foreground">Signature</p>
+              <p className="text-xs text-muted-foreground">
+                Type your full legal name (<strong className="text-foreground">{tenantInfo.tenant_legal_name || "as entered above"}</strong>) exactly to electronically sign.
+              </p>
+              <Input
+                placeholder={`Type "${tenantInfo.tenant_legal_name || "your full legal name"}" to sign`}
+                value={signature}
+                onChange={e => setSignature(e.target.value)}
+              />
+            </div>
+
             <div className="flex gap-2">
               <Button
                 onClick={handleDecline}

@@ -16,6 +16,12 @@ import { enrichConversations } from "@/lib/conversationHelpers";
 import { notifyReportFiled } from "@/lib/notificationService";
 import { supabase } from "@/lib/supabase";
 import { useProfileCheck, ProfileIncompleteWarning } from "@/components/ProfileGate";
+import {
+  softDeleteMessage,
+  softDeleteConversation,
+  filterVisibleMessages,
+  filterVisibleConversations,
+} from "@/lib/messageActions";
 
 export default function Messages() {
   const { user, navigateToLogin, logout } = useAuth();
@@ -48,7 +54,6 @@ export default function Messages() {
         table: 'messages',
         filter: `conversation_id=eq.${selectedId}`,
       }, (payload) => {
-        // Only refresh if the message is from someone else (avoid double-refresh on own send)
         if (payload.new?.sender_user_id !== user?.id) {
           queryClient.invalidateQueries({ queryKey: ['messages', selectedId] });
         }
@@ -57,7 +62,7 @@ export default function Messages() {
     return () => supabase.removeChannel(channel);
   }, [selectedId, queryClient, user?.id]);
 
-  // FIX: Realtime subscription for conversation list updates (new messages in ANY conversation)
+  // FIX: Realtime subscription for conversation list updates
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
@@ -67,7 +72,6 @@ export default function Messages() {
         schema: 'public',
         table: 'conversations',
       }, (payload) => {
-        // Check if this conversation belongs to the current user
         const pIds = payload.new?.participant_ids || payload.old?.participant_ids || [];
         if (pIds.includes(user.id)) {
           queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
@@ -78,8 +82,6 @@ export default function Messages() {
         schema: 'public',
         table: 'messages',
       }, (payload) => {
-        // When any new message arrives, refresh conversation list to update previews
-        // Also refresh the active conversation messages if it matches
         queryClient.invalidateQueries({ queryKey: ['conversations', user.id] });
         if (payload.new?.conversation_id === selectedId && payload.new?.sender_user_id !== user.id) {
           queryClient.invalidateQueries({ queryKey: ['messages', selectedId] });
@@ -95,8 +97,7 @@ export default function Messages() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportingUserId, setReportingUserId] = useState(null);
 
-  // Fetch and enrich conversations in a single query step
-  const { data: conversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
+  const { data: rawConversations = [], isLoading: loadingConvos, refetch: refetchConvos } = useQuery({
     queryKey: ["conversations", user?.id],
     queryFn: async () => {
       const convos = await entities.Conversation.filter({ participant_ids: [user.id] }, '-last_message_at', 50);
@@ -107,13 +108,18 @@ export default function Messages() {
     staleTime: 15000,
   });
 
-  // Fetch messages for selected conversation
-  const { data: messages = [], isLoading: loadingMessages } = useQuery({
+  // Filter out conversations the current user has soft-deleted
+  const conversations = filterVisibleConversations(rawConversations, user?.id);
+
+  const { data: rawMessages = [], isLoading: loadingMessages } = useQuery({
     queryKey: ["messages", selectedId],
     queryFn: () => entities.Message.filter({ conversation_id: selectedId }, "created_date", 100),
     enabled: !!selectedId,
     staleTime: 5000,
   });
+
+  // Filter out messages the current user has soft-deleted
+  const messages = filterVisibleMessages(rawMessages, user?.id);
 
   const selectedConvo = conversations.find(c => c.id === selectedId);
 
@@ -138,19 +144,37 @@ export default function Messages() {
 
       queryClient.invalidateQueries({ queryKey: ["messages", selectedId] });
       refetchConvos();
-
-      // Only send a push notification — NOT an in-app notification for every message.
-      // Standard practice: notifications for messages are handled by the push notification
-      // system (DB trigger → Edge Function → FCM). The recipient gets a push if they're
-      // not actively viewing the conversation. We don't create a notification DB row
-      // for every single chat message — that would flood the notification center.
-      // Push notifications are debounced on the server side.
     } catch (err) {
       console.error("Failed to send message:", err);
       toast.error("Failed to send message");
     } finally {
       setSending(false);
     }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!user?.id || !messageId) return;
+    const { error } = await softDeleteMessage(messageId, user.id);
+    if (error) {
+      console.error("Failed to delete message:", error);
+      toast.error("Failed to delete message");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["messages", selectedId] });
+    toast.success("Message deleted");
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!user?.id || !selectedId) return;
+    const { error } = await softDeleteConversation(selectedId, user.id);
+    if (error) {
+      console.error("Failed to delete conversation:", error);
+      toast.error("Failed to delete conversation");
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["conversations", user.id] });
+    toast.success("Conversation deleted");
+    setSelectedId(null);
   };
 
   const handleReport = (userId) => {
@@ -206,7 +230,6 @@ export default function Messages() {
           <div className="p-4 border-b border-border flex-shrink-0">
             <h2 className="text-2xl font-bold text-foreground">Messages</h2>
           </div>
-          {/* Pull-to-refresh indicator */}
           {(pulling || refreshing) && (
             <div
               className="flex items-center justify-center overflow-hidden transition-all duration-200"
@@ -230,7 +253,8 @@ export default function Messages() {
           <ConversationHeader
             conversation={selectedConvo}
             onBack={() => setSelectedId(null)}
-            onReport={() => handleReport(selectedConvo.other_user_email)}
+            onReport={() => handleReport(selectedConvo.other_user_email || selectedConvo.other_user_id)}
+            onDeleteConversation={handleDeleteConversation}
           />
           <MessageThread
             messages={messages}
@@ -238,6 +262,7 @@ export default function Messages() {
             otherUserAvatar={selectedConvo.other_user_avatar}
             otherUserName={selectedConvo.other_user_display_name || selectedConvo.primary_title}
             isLoading={loadingMessages}
+            onDeleteMessage={handleDeleteMessage}
           />
           <MessageComposer
             onSend={handleSend}
@@ -267,7 +292,8 @@ export default function Messages() {
             <div>
               <label htmlFor="report-reason" className="text-sm font-semibold block mb-2">Reason</label>
               <select
-id="select-field"                 value={reportReason}
+                id="report-reason"
+                value={reportReason}
                 onChange={(e) => setReportReason(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-md text-sm"
               >

@@ -5,14 +5,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Eye, Flag, MoreVertical, FileText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Eye, Flag, MoreVertical, FileText, ShieldCheck, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import RentalOfferModal from "@/components/payments/RentalOfferModal";
 import { useAuth } from "@/lib/AuthContext";
 
-export default function ConversationHeader({ conversation, onBack, onReport }) {
+export default function ConversationHeader({ conversation, onBack, onReport, onDeleteConversation }) {
   const { user } = useAuth();
   const [rentalOfferOpen, setRentalOfferOpen] = useState(false);
 
@@ -20,12 +21,14 @@ export default function ConversationHeader({ conversation, onBack, onReport }) {
     other_user_avatar,
     other_user_display_name,
     other_user_email,
+    other_user_id,
     primary_title,
     secondary_title,
     source_type,
     source_id,
     other_user_verified,
     listing_owner_id,
+    listing,
   } = conversation;
 
   const isOwner = user?.id === listing_owner_id || user?.id === conversation.owner_user_id;
@@ -38,10 +41,18 @@ export default function ConversationHeader({ conversation, onBack, onReport }) {
 
   const viewLink = source_type === "listing" ? `/listing/${source_id}` : `/seeker/${source_id}`;
   const viewLabel = source_type === "listing" ? "View Listing" : "View Profile";
+  const showRentalOfferAction = isOwner && source_type === "listing";
+
+  const handleDelete = () => {
+    if (!onDeleteConversation) return;
+    if (window.confirm("Delete this conversation? It will be hidden from your inbox. The other person will still see it. If either of you sends a new message, the conversation will reappear in both inboxes.")) {
+      onDeleteConversation();
+    }
+  };
 
   return (
     <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm z-10">
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3 gap-2">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Mobile back button */}
           <button onClick={onBack} className="md:hidden flex-shrink-0 p-1.5 -ml-1 rounded-full hover:bg-muted/50 transition-colors">
@@ -76,6 +87,20 @@ export default function ConversationHeader({ conversation, onBack, onReport }) {
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* SEND RENTAL OFFER — promoted to a visible primary button (landlord view, listing-tied convo) */}
+          {showRentalOfferAction && (
+            <Button
+              size="sm"
+              onClick={() => setRentalOfferOpen(true)}
+              className="h-8 text-xs gap-1.5 rounded-lg bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm"
+              title="Send a rental offer to this user"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Send Rental Offer</span>
+              <span className="sm:hidden">Rental</span>
+            </Button>
+          )}
+
           <Link to={viewLink}>
             <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 rounded-lg border-border/60 hover:border-accent/30 hover:bg-accent/5">
               <Eye className="w-3.5 h-3.5" />
@@ -90,28 +115,38 @@ export default function ConversationHeader({ conversation, onBack, onReport }) {
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {isOwner && source_type === "listing" && (
-                <DropdownMenuItem onClick={() => setRentalOfferOpen(true)} className="gap-2">
-                  <FileText className="w-4 h-4 text-accent" />
-                  Send Rental Offer
-                </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-56">
+              {/* Keep in menu too — discoverability + small mobile screens */}
+              {showRentalOfferAction && (
+                <>
+                  <DropdownMenuItem onClick={() => setRentalOfferOpen(true)} className="gap-2">
+                    <FileText className="w-4 h-4 text-accent" />
+                    Send Rental Offer
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
               )}
               <DropdownMenuItem onClick={onReport} className="gap-2 text-destructive focus:text-destructive">
                 <Flag className="w-4 h-4" />
                 Report User
               </DropdownMenuItem>
+              {onDeleteConversation && (
+                <DropdownMenuItem onClick={handleDelete} className="gap-2 text-destructive focus:text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                  Delete Conversation
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
-      {isOwner && source_type === "listing" && (
+      {showRentalOfferAction && (
         <RentalOfferModal
           open={rentalOfferOpen}
           onOpenChange={setRentalOfferOpen}
-          listing={{ id: source_id }}
-          tenantUserId={other_user_email}
+          listing={listing || { id: source_id }}
+          tenantUserId={other_user_id || other_user_email}
           tenantName={other_user_display_name || other_user_email}
         />
       )}

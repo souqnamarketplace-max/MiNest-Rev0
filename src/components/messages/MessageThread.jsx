@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { CheckCheck } from "lucide-react";
+import { CheckCheck, Trash2 } from "lucide-react";
 
-export default function MessageThread({ messages, currentUserId, currentUserEmail, otherUserAvatar, otherUserName, isLoading }) {
+export default function MessageThread({ messages, currentUserId, currentUserEmail, otherUserAvatar, otherUserName, isLoading, onDeleteMessage }) {
   const containerRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -71,6 +71,13 @@ export default function MessageThread({ messages, currentUserId, currentUserEmai
 
   const otherInitials = (otherUserName || "U").split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
+  const handleDeleteClick = (msg) => {
+    if (!onDeleteMessage) return;
+    if (window.confirm("Delete this message? It will be hidden from your view. The other person will still see it.")) {
+      onDeleteMessage(msg.id);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 overflow-y-auto p-4 flex items-center justify-center">
@@ -82,36 +89,13 @@ export default function MessageThread({ messages, currentUserId, currentUserEmai
     );
   }
 
-  if (messages.length === 0) {
-    return (
-      <div className="flex-1 overflow-y-auto flex items-center justify-center">
-        <div className="text-center px-8">
-          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <p className="text-base font-semibold text-foreground mb-1">Start the conversation</p>
-          <p className="text-sm text-muted-foreground max-w-[240px] mx-auto">Say hello and ask about the listing details, availability, or house rules.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 space-y-0.5">
-      {/* Safety reminder */}
-      <div className="flex justify-center mb-5">
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-xl px-4 py-2 text-[11px] text-blue-600 dark:text-blue-400 text-center max-w-[320px]">
-          🔒 For your safety, keep payments and agreements on MiNest.
-        </div>
-      </div>
-
+    <div ref={containerRef} className="flex-1 overflow-y-auto p-4 bg-background">
       {groupedMessages.map((item, idx) => {
         if (item.type === "date") {
           return (
-            <div key={`date-${idx}`} className="flex justify-center py-4">
-              <span className="text-[11px] font-medium text-muted-foreground/60 bg-muted/50 rounded-full px-3 py-1">
+            <div key={`date-${idx}`} className="flex justify-center my-4">
+              <span className="px-3 py-1 bg-muted/40 rounded-full text-[11px] text-muted-foreground font-medium">
                 {getDateLabel(item.date)}
               </span>
             </div>
@@ -143,7 +127,7 @@ export default function MessageThread({ messages, currentUserId, currentUserEmai
           : "rounded-2xl rounded-bl-md";
 
         return (
-          <div key={msg.id || `msg-${idx}`} className={`flex items-end gap-1.5 ${isOwn ? "justify-end" : "justify-start"} ${sameSenderPrev ? "mt-[2px]" : "mt-3"}`}>
+          <div key={msg.id || `msg-${idx}`} className={`group flex items-end gap-1.5 ${isOwn ? "justify-end" : "justify-start"} ${sameSenderPrev ? "mt-[2px]" : "mt-3"}`}>
             {/* Other user avatar — only show on last message in a group */}
             {!isOwn && (
               <div className="w-7 flex-shrink-0 mb-5">
@@ -156,7 +140,19 @@ export default function MessageThread({ messages, currentUserId, currentUserEmai
               </div>
             )}
 
-            <div className="max-w-[75%] sm:max-w-[60%]">
+            <div className="max-w-[75%] sm:max-w-[60%] relative">
+              {/* Hover/touch delete button for own messages */}
+              {isOwn && onDeleteMessage && msg.id && (
+                <button
+                  onClick={() => handleDeleteClick(msg)}
+                  className="absolute -left-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                  aria-label="Delete message"
+                  title="Delete message"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+
               {/* Message bubble */}
               <div className={`px-3.5 py-2 text-[14px] leading-relaxed ${
                 isOwn

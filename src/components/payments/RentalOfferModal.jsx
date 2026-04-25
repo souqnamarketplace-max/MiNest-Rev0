@@ -1,13 +1,13 @@
 /**
  * Owner sends a formal rental offer to a specific tenant.
- * Multi-step form collecting all legally required fields.
+ * Multi-step form — LANDLORD-ONLY fields. Tenant fills personal info + signs separately.
  *
- * ZIP 1 fixes:
- *   - Tenant UUID lookup now actually USES the result (was ignored before)
- *   - Jurisdiction picker covers all 13 CA provinces/territories + 51 US states/DC
- *   - form_version stamped from jurisdiction so the PDF/clause template is recorded
- *   - rent_amount now captured (was missing — payment flow needs it)
- *   - currency defaulted from country
+ * Zip 1.5 changes:
+ *   - Removed all tenant_* personal fields (tenant fills these on their side)
+ *   - Quiet hours now OPTIONAL via checkbox
+ *   - Landlord signs at the end of step 4 (status remains 'pending_tenant',
+ *     but owner_signature is pre-filled — Facebook/Instagram-style send-with-signature)
+ *   - Better column-name handling (uses listing.street_address, listing.parking_type)
  */
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,43 +19,65 @@ import { entities } from '@/api/entities';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, ChevronRight, ChevronLeft, FileText } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, FileText, CheckCircle2 } from "lucide-react";
 import JurisdictionPicker from "@/components/payments/JurisdictionPicker";
 import { detectJurisdictionFromListing, getFormVersion, findJurisdiction } from "@/lib/jurisdictions";
 
-const STEPS = ["Landlord Info", "Property & Lease", "Financial Terms", "Rules & Extras"];
+const STEPS = ["Your Info", "Property & Lease", "Financial Terms", "Rules & Sign"];
 
-export default function RentalOfferModal({ open, onOpenChange, listing, tenantUserId, tenantName, agreement }) {
+// Best-effort IP capture for audit trail. Does not block on failure.
+async function getClientIp() {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.ip || null;
+  } catch {
+    return null;
+  }
+}
+
+export default function RentalOfferModal({ open, onOpenChange, listing, tenantUserId, tenantName }) {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Auto-detect country/jurisdiction from the listing
   const detected = detectJurisdictionFromListing(listing);
 
   const [form, setForm] = useState({
+    // Landlord info
     owner_legal_name: user?.full_name || "",
     owner_email: user?.email || "",
     owner_phone: "",
     owner_mailing_address: "",
     owner_corporation_name: "",
+
+    // Property
     unit_number: "",
     property_type: listing?.listing_type || "apartment",
     property_address: [listing?.street_address, listing?.city, listing?.province_or_state].filter(Boolean).join(", ") || "",
+
+    // Jurisdiction
     governing_province_or_state: detected.jurisdiction?.code || listing?.province_or_state || "",
     governing_province_name: detected.jurisdiction?.name || listing?.province_or_state || "",
     country: detected.country || (listing?.country || "CA"),
     currency: detected.country === "US" ? "usd" : "cad",
+
+    // Lease
     lease_start_date: "",
     lease_end_date: "",
     lease_type: "fixed_term",
-    rent_amount: listing?.rent_amount || "",
-    interval: "monthly",
+
+    // Property features
     parking_included: !!(listing?.parking_type && listing.parking_type !== 'none'),
     parking_space: "",
     storage_included: false,
     utilities_included: [],
     appliances_included: [],
+
+    // Financial
+    rent_amount: listing?.rent_amount || "",
+    interval: "monthly",
     rent_due_day: 1,
     payment_method: "in_app",
     deposit_amount: "",
@@ -63,15 +85,23 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
     last_month_rent_collected: false,
     late_fee_amount: "",
     late_fee_grace_days: 5,
+
+    // Rules
     smoking_permitted: false,
     pets_permitted: !!listing?.pets_allowed,
     pet_details: "",
     subletting_permitted: false,
     house_rules: "",
     guest_policy: "",
+    quiet_hours_enabled: false,        // NEW — optional toggle
     quiet_hours_start: "22:00",
     quiet_hours_end: "08:00",
     special_terms: "",
+
+    // Landlord signature (typed at end of form)
+    owner_signature: "",
+
+    // Tenant identifier (resolved to UUID on submit)
     tenant_user_id_input: tenantUserId || "",
   });
 
@@ -91,20 +121,11 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
     }));
   };
 
-  /**
-   * Resolve a tenant identifier to a UUID.
-   * Accepts: full UUID already, email, or display_name fragment.
-   * Returns a UUID string or null if not found.
-   */
   const resolveTenantUserId = async (raw) => {
     const val = typeof raw === 'string' ? raw.trim() : '';
     if (!val) return null;
-
-    // Already a UUID?
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (UUID_RE.test(val)) return val;
-
-    // Looks like an email — look up by email
     if (val.includes('@')) {
       const { data } = await supabase
         .from('user_profiles')
@@ -114,8 +135,6 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       if (data && data.length > 0) return data[0].user_id;
       return null;
     }
-
-    // Otherwise treat as a name search
     const { data } = await supabase
       .from('user_profiles')
       .select('user_id')
@@ -132,20 +151,26 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
     if (!form.lease_start_date || !form.lease_end_date) { toast.error("Lease dates are required."); return; }
     if (!form.country || !form.governing_province_or_state) { toast.error("Please select the governing country and province/state."); return; }
     if (!form.rent_amount || Number(form.rent_amount) <= 0) { toast.error("Please enter a monthly rent amount."); return; }
+    if (!form.owner_signature.trim()) { toast.error("Please type your full legal name to sign and send the offer."); return; }
+    if (form.owner_signature.trim().toLowerCase() !== (form.owner_legal_name || '').trim().toLowerCase()) {
+      toast.error("Your signature must match your legal name exactly.");
+      return;
+    }
 
     setLoading(true);
     try {
-      // Resolve tenant email/name/UUID to an actual UUID (required by RLS and notifications)
       const tenantId = await resolveTenantUserId(targetTenant);
       if (!tenantId) {
-        toast.error("Could not find a user with that email. Ask them to sign up first, or send them the listing link.");
+        toast.error("Could not find a user with that email. Ask them to sign up first.");
         setLoading(false);
         return;
       }
 
       const jurisdiction = findJurisdiction(form.country, form.governing_province_or_state);
       const form_version = getFormVersion(form.country, form.governing_province_or_state);
+      const ip = await getClientIp();
 
+      // Build payload — skip empty quiet hours when disabled
       const payload = {
         listing_id: listing.id,
         listing_title: listing.title,
@@ -153,16 +178,67 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
         tenant_user_id: tenantId,
         status: 'pending_tenant',
         form_version,
-        ...form,
-        // Store full name for display, keep code for lookups
+
+        // Landlord info
+        owner_legal_name: form.owner_legal_name,
+        owner_email: form.owner_email,
+        owner_phone: form.owner_phone,
+        owner_mailing_address: form.owner_mailing_address,
+        owner_corporation_name: form.owner_corporation_name,
+
+        // Property
+        unit_number: form.unit_number,
+        property_type: form.property_type,
+        property_address: form.property_address,
+
+        // Jurisdiction (store full name for display)
         governing_province_or_state: jurisdiction?.name || form.governing_province_or_state,
+        country: form.country,
+        currency: form.currency,
+
+        // Lease
+        lease_start_date: form.lease_start_date,
+        lease_end_date: form.lease_end_date,
+        lease_type: form.lease_type,
+
+        // Features
+        parking_included: form.parking_included,
+        parking_space: form.parking_included ? form.parking_space : '',
+        storage_included: form.storage_included,
+        utilities_included: form.utilities_included,
+        appliances_included: form.appliances_included,
+
+        // Financial — convert to cents
         rent_amount: form.rent_amount ? Math.round(parseFloat(form.rent_amount) * 100) : 0,
+        interval: form.interval,
+        rent_due_day: form.rent_due_day,
+        payment_method: form.payment_method,
         deposit_amount: form.deposit_amount ? Math.round(parseFloat(form.deposit_amount) * 100) : 0,
+        deposit_held_by: form.deposit_held_by,
+        last_month_rent_collected: form.last_month_rent_collected,
         late_fee_amount: form.late_fee_amount ? Math.round(parseFloat(form.late_fee_amount) * 100) : 0,
+        late_fee_grace_days: form.late_fee_grace_days,
+
+        // Rules
+        smoking_permitted: form.smoking_permitted,
+        pets_permitted: form.pets_permitted,
+        pet_details: form.pets_permitted ? form.pet_details : '',
+        subletting_permitted: form.subletting_permitted,
+        house_rules: form.house_rules,
+        guest_policy: form.guest_policy,
+        quiet_hours_start: form.quiet_hours_enabled ? form.quiet_hours_start : null,
+        quiet_hours_end: form.quiet_hours_enabled ? form.quiet_hours_end : null,
+        special_terms: form.special_terms,
+
+        // Landlord signature (sign-on-send)
+        owner_signature: form.owner_signature.trim(),
+        owner_signed_at: new Date().toISOString(),
+        owner_signed_ip: ip,
+        owner_signed_user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : null)?.slice(0, 500),
+
+        // Offer expires in 7 days by default
+        offer_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       };
-      // Remove UI-only fields that aren't DB columns
-      delete payload.tenant_user_id_input;
-      delete payload.governing_province_name;
 
       await entities.RentalAgreement.create(payload);
 
@@ -188,7 +264,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
   const APPLIANCE_OPTIONS = ["fridge", "stove", "dishwasher", "washer", "dryer", "microwave", "air conditioning"];
 
   const stepContent = [
-    // Step 0: Landlord Info
+    /* Step 0: Your Info (landlord) */
     <div key="s0" className="space-y-3">
       {!tenantUserId && (
         <div>
@@ -199,7 +275,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       )}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Legal Name *</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Legal Name *</label>
           <Input value={form.owner_legal_name} onChange={e => set("owner_legal_name", e.target.value)} />
         </div>
         <div>
@@ -213,17 +289,20 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
           <Input type="email" value={form.owner_email} onChange={e => set("owner_email", e.target.value)} />
         </div>
         <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Phone <span className="text-destructive">*</span></label>
-          <Input placeholder="+1 (xxx) xxx-xxxx" value={form.owner_phone} onChange={e => set("owner_phone", e.target.value)} className={!form.owner_phone.trim() ? "border-destructive" : ""} />
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Phone *</label>
+          <Input placeholder="+1 (xxx) xxx-xxxx" value={form.owner_phone} onChange={e => set("owner_phone", e.target.value)} />
         </div>
       </div>
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mailing Address (if different)</label>
         <Input placeholder="123 Main St, City, Province" value={form.owner_mailing_address} onChange={e => set("owner_mailing_address", e.target.value)} />
       </div>
+      <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground">
+        💡 The tenant will fill in <strong className="text-foreground">their personal information</strong> (full name, date of birth, phone, current address, employer, emergency contact) and upload their ID/passport when they receive this offer to sign.
+      </div>
     </div>,
 
-    // Step 1: Property & Lease
+    /* Step 1: Property & Lease */
     <div key="s1" className="space-y-3">
       <JurisdictionPicker
         country={form.country}
@@ -232,7 +311,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
         listing={listing}
       />
       <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Property Address</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Property Address *</label>
         <Input placeholder="123 Main St, City" value={form.property_address} onChange={e => set("property_address", e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -298,7 +377,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       </div>
     </div>,
 
-    // Step 2: Financial Terms
+    /* Step 2: Financial Terms */
     <div key="s2" className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -314,7 +393,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Security Deposit ($)</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Security Deposit ({form.currency?.toUpperCase()})</label>
           <Input type="number" min={0} step="0.01" placeholder="0.00" value={form.deposit_amount} onChange={e => set("deposit_amount", e.target.value)} />
         </div>
         <div>
@@ -342,7 +421,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
         </div>
       </div>
       <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Late Fee ($)</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Late Fee ({form.currency?.toUpperCase()})</label>
         <Input type="number" min={0} step="0.01" placeholder="0.00" value={form.late_fee_amount} onChange={e => set("late_fee_amount", e.target.value)} />
       </div>
       <div className="flex flex-wrap gap-4">
@@ -365,7 +444,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       )}
     </div>,
 
-    // Step 3: Rules & Extras
+    /* Step 3: Rules + Sign */
     <div key="s3" className="space-y-3">
       <div className="flex flex-wrap gap-4">
         {[
@@ -385,14 +464,27 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
           <Input placeholder="e.g. One small dog under 20lbs" value={form.pet_details} onChange={e => set("pet_details", e.target.value)} />
         </div>
       )}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quiet Hours</label>
-        <div className="flex items-center gap-2">
-          <Input type="time" value={form.quiet_hours_start} onChange={e => set("quiet_hours_start", e.target.value)} className="flex-1" />
-          <span className="text-muted-foreground text-sm">to</span>
-          <Input type="time" value={form.quiet_hours_end} onChange={e => set("quiet_hours_end", e.target.value)} className="flex-1" />
-        </div>
+
+      {/* Quiet hours — OPTIONAL */}
+      <div className="border border-border rounded-lg p-3 bg-muted/20">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.quiet_hours_enabled}
+            onChange={e => set("quiet_hours_enabled", e.target.checked)}
+            className="rounded"
+          />
+          <span className="font-medium">Set quiet hours (optional)</span>
+        </label>
+        {form.quiet_hours_enabled && (
+          <div className="mt-3 flex items-center gap-2">
+            <Input type="time" value={form.quiet_hours_start} onChange={e => set("quiet_hours_start", e.target.value)} className="flex-1" />
+            <span className="text-muted-foreground text-sm">to</span>
+            <Input type="time" value={form.quiet_hours_end} onChange={e => set("quiet_hours_end", e.target.value)} className="flex-1" />
+          </div>
+        )}
       </div>
+
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">House Rules</label>
         <Textarea placeholder="No parties, no smoking in common areas..." value={form.house_rules} onChange={e => set("house_rules", e.target.value)} className="min-h-16 text-sm" />
@@ -404,6 +496,23 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
       <div>
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Special Terms</label>
         <Textarea placeholder="Any additional clauses or conditions..." value={form.special_terms} onChange={e => set("special_terms", e.target.value)} className="min-h-16 text-sm" />
+      </div>
+
+      {/* Landlord signature — sign on send */}
+      <div className="border-2 border-accent/30 rounded-xl p-4 bg-accent/5 mt-4 space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <CheckCircle2 className="w-4 h-4 text-accent" />
+          Sign and send this offer
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Type your full legal name (<strong className="text-foreground">{form.owner_legal_name || "as entered above"}</strong>) to electronically sign this offer. Your IP address and timestamp will be recorded for legal audit.
+        </p>
+        <Input
+          placeholder={`Type "${form.owner_legal_name || "your full legal name"}" to sign`}
+          value={form.owner_signature}
+          onChange={e => set("owner_signature", e.target.value)}
+          className="bg-white"
+        />
       </div>
     </div>,
   ];
@@ -457,7 +566,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
           ) : (
             <Button onClick={handleSubmit} disabled={loading} className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground">
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
-              Send Offer
+              Sign and Send Offer
             </Button>
           )}
         </div>
