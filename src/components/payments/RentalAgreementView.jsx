@@ -9,6 +9,7 @@
  *   - Display "pending_owner" state as "Awaiting Landlord Signature"
  */
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { entities } from '@/api/entities';
@@ -19,6 +20,7 @@ import { formatCents } from "@/lib/paymentHelpers";
 import { format } from "date-fns";
 import { downloadRentalAgreementPdf } from "@/components/payments/RentalAgreementPdf";
 import RentalDocumentsViewer from "@/components/payments/RentalDocumentsViewer";
+import TerminationPanel from "@/components/payments/TerminationPanel";
 import TenantInfoForm, { validateTenantInfo } from "@/components/payments/TenantInfoForm";
 import TenantIdUploader from "@/components/payments/TenantIdUploader";
 import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
@@ -92,6 +94,21 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
 
   const isTenant = user?.id === agreement?.tenant_user_id;
   const isOwner = user?.id === agreement?.owner_user_id;
+
+  // Look up is_admin from user_profiles (cached against the same key
+  // Header.jsx and Dashboard.jsx use, so this is free when the page was
+  // navigated to from anywhere in-app).
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return await entities.UserProfile.filter({ user_id: user.id });
+    },
+    enabled: !!user?.id,
+    staleTime: 120000,
+  });
+  const isAdmin = !!profiles?.[0]?.is_admin;
+
   const isPendingTenant = agreement?.status === "pending_tenant";
   const isPendingOwner = agreement?.status === "pending_owner";
   const isAccepted = agreement?.status === "accepted";
@@ -423,9 +440,15 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
           </div>
         </Section>
 
-        {/* Tenant Verification Documents — visible to landlord (and admins) only.
-            Hidden from the tenant themselves once signed. */}
-        {isOwner && (
+        {/* Early termination workflow — only renders for accepted (active)
+            agreements; hidden for offers awaiting signature. Renders the
+            appropriate panel based on the actor's role and current
+            termination_status. */}
+        <TerminationPanel agreement={agreement} onChanged={onSigned} />
+
+        {/* Tenant Verification Documents — visible to landlord and admins.
+            Hidden from the tenant themselves and other non-party users. */}
+        {(isOwner || isAdmin) && (
           <Section title="Tenant Verification Documents">
             <RentalDocumentsViewer
               documents={agreement.tenant_id_documents || []}

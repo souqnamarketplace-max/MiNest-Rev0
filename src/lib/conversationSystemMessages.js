@@ -98,6 +98,16 @@ export function humanPreview(type, payload = {}) {
       return `✅ Rental agreement signed ${num}`.trim();
     case "rental_offer_declined":
       return `❌ Rental offer declined ${num}`.trim();
+    case "termination_requested":
+      return `⏰ Early termination requested ${num}`.trim();
+    case "termination_accepted":
+      return `✅ Termination accepted ${num}`.trim();
+    case "termination_declined":
+      return `↩️ Termination declined ${num}`.trim();
+    case "termination_countered":
+      return `🔄 Termination counter-offer ${num}`.trim();
+    case "agreement_terminated_early":
+      return `🏁 Lease terminated early ${num}`.trim();
     default:
       return "System event";
   }

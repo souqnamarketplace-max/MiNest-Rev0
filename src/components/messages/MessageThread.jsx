@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { CheckCheck, Trash2, FileText, ChevronRight, CheckCircle2, XCircle } from "lucide-react";
+import { CheckCheck, Trash2, FileText, ChevronRight, CheckCircle2, XCircle, Clock, RefreshCw, Flag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { isSystemMessage, parseSystemMessage } from "@/lib/conversationSystemMessages";
 
@@ -35,6 +35,36 @@ function SystemMessageCard({ type, payload, time }) {
       iconCls: "text-red-700 bg-red-50",
       title: "Rental offer declined",
       cta: null,
+    },
+    termination_requested: {
+      Icon: Clock,
+      iconCls: "text-amber-700 bg-amber-50",
+      title: "Early termination requested",
+      cta: link ? "Review request" : null,
+    },
+    termination_countered: {
+      Icon: RefreshCw,
+      iconCls: "text-blue-700 bg-blue-50",
+      title: "Termination counter-offer",
+      cta: link ? "Review counter-offer" : null,
+    },
+    termination_accepted: {
+      Icon: CheckCircle2,
+      iconCls: "text-emerald-700 bg-emerald-50",
+      title: "Termination accepted",
+      cta: link ? "Sign to finalize" : null,
+    },
+    termination_declined: {
+      Icon: XCircle,
+      iconCls: "text-red-700 bg-red-50",
+      title: "Termination declined",
+      cta: null,
+    },
+    agreement_terminated_early: {
+      Icon: Flag,
+      iconCls: "text-slate-700 bg-slate-100",
+      title: "Lease terminated early",
+      cta: link ? "View agreement" : null,
     },
   };
   const v = variants[type];

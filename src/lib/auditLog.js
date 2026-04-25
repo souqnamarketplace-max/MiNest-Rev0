@@ -158,5 +158,10 @@ export const AuditEvents = Object.freeze({
   DOCUMENT_REJECTED:  "document_rejected",
   TERMINATION_REQUESTED: "termination_requested",
   TERMINATION_ACCEPTED:  "termination_accepted",
+  TERMINATION_DECLINED:  "termination_declined",
+  TERMINATION_COUNTERED: "termination_countered",
+  TERMINATION_SIGNED:    "termination_signed",
+  TERMINATION_CANCELED:  "termination_canceled",
+  AGREEMENT_TERMINATED_EARLY: "agreement_terminated_early",
   RENEWAL_SENT:       "renewal_sent",
 });
