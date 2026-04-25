@@ -77,7 +77,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
 
     // Financial
     rent_amount: listing?.rent_amount || "",
-    interval: "monthly",
+    interval: "month",
     rent_due_day: 1,
     payment_method: "in_app",
     deposit_amount: "",
