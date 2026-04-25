@@ -14,10 +14,11 @@ import { Input } from "@/components/ui/input";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
-import { Loader2, FileText, CheckCircle2, XCircle, Download, Clock } from "lucide-react";
+import { Loader2, FileText, CheckCircle2, XCircle, Download, Clock, Hash } from "lucide-react";
 import { formatCents } from "@/lib/paymentHelpers";
 import { format } from "date-fns";
-import { jsPDF } from "jspdf";
+import { downloadRentalAgreementPdf } from "@/components/payments/RentalAgreementPdf";
+import RentalDocumentsViewer from "@/components/payments/RentalDocumentsViewer";
 import TenantInfoForm, { validateTenantInfo } from "@/components/payments/TenantInfoForm";
 import TenantIdUploader from "@/components/payments/TenantIdUploader";
 
@@ -80,156 +81,18 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
   const depositDisplay = agreement?.deposit_amount > 0 ? formatCents(agreement.deposit_amount, agreement?.currency || "cad") : null;
   const lateFeeDisplay = agreement?.late_fee_amount > 0 ? formatCents(agreement.late_fee_amount, agreement?.currency || "cad") : null;
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF({ unit: "pt", format: "letter" });
-    const margin = 50;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const contentWidth = pageWidth - margin * 2;
-    let y = margin;
-
-    const checkPage = (needed = 20) => {
-      if (y + needed > doc.internal.pageSize.getHeight() - margin) {
-        doc.addPage();
-        y = margin;
-      }
-    };
-
-    const addTitle = (text) => {
-      checkPage(30);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.setTextColor(15, 23, 42);
-      doc.text(text, pageWidth / 2, y, { align: "center" });
-      y += 24;
-    };
-
-    const addSectionHeader = (text) => {
-      checkPage(30);
-      y += 12;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(text.toUpperCase(), margin, y);
-      doc.setDrawColor(226, 232, 240);
-      doc.line(margin, y + 3, margin + contentWidth, y + 3);
-      y += 18;
-    };
-
-    const addRow = (label, value) => {
-      if (!value && value !== 0) return;
-      checkPage(18);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text(label, margin, y);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      const lines = doc.splitTextToSize(String(value), contentWidth * 0.55);
-      doc.text(lines, margin + contentWidth * 0.42, y);
-      y += lines.length > 1 ? lines.length * 14 : 16;
-    };
-
-    const addText = (text) => {
-      checkPage(20);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(51, 65, 85);
-      const lines = doc.splitTextToSize(text, contentWidth);
-      lines.forEach(line => { checkPage(14); doc.text(line, margin, y); y += 14; });
-      y += 4;
-    };
-
-    const addSubHeader = (text) => {
-      checkPage(20);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(15, 23, 42);
-      doc.text(text, margin, y);
-      y += 16;
-    };
-
-    const a = agreement;
-    const rentDisp = formatCents(a?.rent_amount, a?.currency || "cad");
-    const depositDisp = a?.deposit_amount > 0 ? formatCents(a.deposit_amount, a?.currency || "cad") : null;
-    const lateFeeDisp = a?.late_fee_amount > 0 ? formatCents(a.late_fee_amount, a?.currency || "cad") : null;
-
-    addTitle("Residential Tenancy Agreement");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`${a.governing_province_or_state || ""} — ${a.country === "US" ? "United States" : "Canada"}`, pageWidth / 2, y, { align: "center" });
-    y += 28;
-
-    addSectionHeader("Part 1 — The Parties");
-    addSubHeader("LANDLORD");
-    addRow("Legal Name", a.owner_legal_name);
-    addRow("Corporation", a.owner_corporation_name);
-    addRow("Email", a.owner_email);
-    addRow("Phone", a.owner_phone);
-    addRow("Mailing Address", a.owner_mailing_address);
-    y += 8;
-    addSubHeader("TENANT");
-    addRow("Legal Name", a.tenant_legal_name);
-    addRow("Email", a.tenant_email);
-    addRow("Phone", a.tenant_phone);
-    addRow("Current Address", a.tenant_current_address);
-    addRow("Employer", a.tenant_employer);
-    addRow("Date of Birth", a.tenant_date_of_birth);
-    addRow("Emergency Contact", a.tenant_emergency_contact_name);
-    addRow("Emergency Phone", a.tenant_emergency_contact_phone);
-
-    addSectionHeader("Part 2 — The Rental Unit");
-    addRow("Property Address", a.property_address);
-    addRow("Unit Number", a.unit_number);
-    addRow("Property Type", a.property_type);
-    addRow("Parking", a.parking_included ? `Included${a.parking_space ? ` — ${a.parking_space}` : ""}` : "Not included");
-    addRow("Storage", a.storage_included ? "Included" : "Not included");
-    if (a.utilities_included?.length > 0) addRow("Utilities Included", a.utilities_included.join(", "));
-    if (a.appliances_included?.length > 0) addRow("Appliances Included", a.appliances_included.join(", "));
-
-    addSectionHeader("Part 3 — Lease Term & Rent");
-    addRow("Lease Type", a.lease_type === "fixed_term" ? "Fixed Term" : "Month-to-Month");
-    addRow("Start Date", a.lease_start_date);
-    addRow("End Date", a.lease_end_date);
-    addRow("Monthly Rent", rentDisp);
-    addRow("Rent Due Day", a.rent_due_day ? `${a.rent_due_day}${["st","nd","rd"][a.rent_due_day - 1] || "th"} of each month` : null);
-    addRow("Payment Method", a.payment_method?.replace(/_/g, " "));
-    if (depositDisp) addRow("Security Deposit", depositDisp);
-    if (depositDisp) addRow("Deposit Held By", a.deposit_held_by);
-    addRow("Last Month's Rent", a.last_month_rent_collected ? "Collected" : "Not collected");
-    if (lateFeeDisp) addRow("Late Fee", `${lateFeeDisp} after ${a.late_fee_grace_days}-day grace period`);
-
-    addSectionHeader("Part 4 — Rules & Conditions");
-    addRow("Smoking", a.smoking_permitted ? "Permitted" : "Not permitted");
-    addRow("Pets", a.pets_permitted ? `Permitted${a.pet_details ? ` — ${a.pet_details}` : ""}` : "Not permitted");
-    addRow("Subletting", a.subletting_permitted ? "Permitted with written consent" : "Not permitted");
-    if (a.quiet_hours_start && a.quiet_hours_end) addRow("Quiet Hours", `${a.quiet_hours_start} – ${a.quiet_hours_end}`);
-    if (a.guest_policy) addRow("Guest Policy", a.guest_policy);
-    if (a.house_rules) { y += 4; addSubHeader("House Rules"); addText(a.house_rules); }
-    if (a.special_terms) { y += 4; addSubHeader("Special Terms"); addText(a.special_terms); }
-
-    addSectionHeader("Part 5 — Signatures");
-    addSubHeader("LANDLORD SIGNATURE");
-    addRow("Signed by", a.owner_signature || "Awaiting signature");
-    addRow("Date", a.owner_signed_at ? format(new Date(a.owner_signed_at), "PPP") : "—");
-    if (a.owner_signed_ip) addRow("IP Address", a.owner_signed_ip);
-    y += 8;
-    addSubHeader("TENANT SIGNATURE");
-    addRow("Signed by", a.tenant_signature || "Awaiting signature");
-    addRow("Date", a.tenant_signed_at ? format(new Date(a.tenant_signed_at), "PPP") : "—");
-    if (a.tenant_signed_ip) addRow("IP Address", a.tenant_signed_ip);
-
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text(`MiNest — Residential Tenancy Agreement · ${a.form_version || ""} · Page ${i} of ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 20, { align: "center" });
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const handleDownloadPDF = async () => {
+    if (!agreement) return;
+    setDownloadingPdf(true);
+    try {
+      await downloadRentalAgreementPdf(agreement);
+    } catch (err) {
+      console.error('[RentalAgreementView] PDF download failed:', err);
+      toast.error("Failed to generate PDF");
+    } finally {
+      setDownloadingPdf(false);
     }
-
-    const fileName = `rental-agreement-${(a.listing_title || "agreement").replace(/\s+/g, "-").toLowerCase()}.pdf`;
-    doc.save(fileName);
   };
 
   // Tenant signs a landlord-initiated offer: pending_tenant → accepted
@@ -357,12 +220,21 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
           {agreement.governing_province_or_state || ""}{agreement.governing_province_or_state ? " — " : ""}
           {agreement.country === "US" ? "United States" : "Canada"}
         </p>
+        {/* Agreement number badge */}
+        {agreement.agreement_number != null && (
+          <div className="inline-flex items-center gap-1.5 mt-3 bg-white/15 rounded-full px-3 py-1 text-xs font-semibold tracking-wide">
+            <Hash className="w-3 h-3" />
+            <span>Agreement #{String(agreement.agreement_number).padStart(4, "0")}</span>
+          </div>
+        )}
         <button
           onClick={handleDownloadPDF}
-          className="absolute top-4 right-4 flex items-center gap-1.5 text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg transition-colors"
+          disabled={downloadingPdf}
+          className="absolute top-4 right-4 flex items-center gap-1.5 text-xs bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
           title="Download / Print PDF"
         >
-          <Download className="w-3.5 h-3.5" /> Download PDF
+          {downloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          {downloadingPdf ? "Generating..." : "Download PDF"}
         </button>
       </div>
 
@@ -480,6 +352,17 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
             </div>
           </div>
         </Section>
+
+        {/* Tenant Verification Documents — visible to landlord (and admins) only.
+            Hidden from the tenant themselves once signed. */}
+        {isOwner && (
+          <Section title="Tenant Verification Documents">
+            <RentalDocumentsViewer
+              documents={agreement.tenant_id_documents || []}
+              visible={true}
+            />
+          </Section>
+        )}
 
         {/* Tenant signing UI (landlord sent offer) — fill personal info + upload ID + sign */}
         {isTenant && isPendingTenant && (
