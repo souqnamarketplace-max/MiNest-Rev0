@@ -70,7 +70,7 @@ export default function RentalCard({ agreement, role = "tenant", counterpartyNam
     || (role === "tenant" ? agreement.owner_legal_name : agreement.tenant_legal_name)
     || "—";
 
-  const link = `/my-payments?agreement=${agreement.id}`;
+  const link = `/rentals/${agreement.id}`;
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3 hover:border-accent/30 transition-colors">

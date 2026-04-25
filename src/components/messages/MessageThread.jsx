@@ -14,7 +14,7 @@ function SystemMessageCard({ type, payload, time }) {
     ? `#${String(payload.agreement_number).padStart(4, "0")}`
     : null;
   const link = payload?.agreement_id
-    ? `/my-payments?agreement=${payload.agreement_id}`
+    ? `/rentals/${payload.agreement_id}`
     : null;
 
   const variants = {

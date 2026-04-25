@@ -4,6 +4,7 @@
  * Owners see their earnings + tenants' subscriptions + bank connect status.
  */
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
@@ -24,6 +25,7 @@ import PaymentScheduleCalendar from "@/components/payments/PaymentScheduleCalend
 import DepositRefundModal from "@/components/payments/DepositRefundModal";
 
 export default function MyPayments() {
+  const navigate = useNavigate();
   const { user, navigateToLogin, logout } = useAuth();
   const qc = useQueryClient();
   const [disputeTarget, setDisputeTarget] = useState(null);
@@ -31,12 +33,13 @@ export default function MyPayments() {
   const [tab, setTab] = useState("tenant");
   const [selectedAgreement, setSelectedAgreement] = useState(null);
 
-  // Open agreement from URL param
+  // Backward compat: old links (notifications, bookmarks, pre-2.1A.1 cards)
+  // pointed at /my-payments?agreement=X. Redirect to /rentals/X transparently.
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const agreementId = params.get("agreement");
-    if (agreementId) setSelectedAgreement(agreementId);
-  }, []);
+    if (agreementId) navigate(`/rentals/${agreementId}`, { replace: true });
+  }, [navigate]);
 
   // Handle redirect back from Stripe Connect onboarding
   useEffect(() => {
@@ -243,7 +246,7 @@ export default function MyPayments() {
                             a.status === "declined" ? "bg-destructive/10 text-destructive" :
                             "bg-muted text-muted-foreground"
                           }`}>{a.status === "pending_tenant" ? "Awaiting Tenant" : a.status}</Badge>
-                          <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => setSelectedAgreement(a.id)}>
+                          <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => navigate(`/rentals/${a.id}`)}>
                             <FileText className="w-3 h-3" /> View
                           </Button>
                         </div>
@@ -283,7 +286,7 @@ export default function MyPayments() {
                           Decline
                         </Button>
                         <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground text-xs gap-1"
-                          onClick={() => setSelectedAgreement(a.id)}>
+                          onClick={() => navigate(`/rentals/${a.id}`)}>
                           <FileText className="w-3 h-3" /> Review
                         </Button>
                       </div>
@@ -401,7 +404,7 @@ export default function MyPayments() {
                           "bg-muted text-muted-foreground"
                         }`}>{a.status}</Badge>
                         {a.status === "accepted" && (
-                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSelectedAgreement(a.id)}>View</Button>
+                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate(`/rentals/${a.id}`)}>View</Button>
                         )}
                       </div>
                     </div>
