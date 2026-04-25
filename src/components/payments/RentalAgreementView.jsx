@@ -21,6 +21,7 @@ import { downloadRentalAgreementPdf } from "@/components/payments/RentalAgreemen
 import RentalDocumentsViewer from "@/components/payments/RentalDocumentsViewer";
 import TenantInfoForm, { validateTenantInfo } from "@/components/payments/TenantInfoForm";
 import TenantIdUploader from "@/components/payments/TenantIdUploader";
+import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
 
 // Best-effort IP capture. Does not block signing if it fails.
 async function getClientIp() {
@@ -130,6 +131,31 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
         read: false,
         data: { agreement_id: agreement.id },
       });
+
+      // Post "rental agreement signed" system message into the conversation
+      // between landlord and tenant, if one exists. Best-effort.
+      try {
+        const convo = await findConversation({
+          listingId: agreement.listing_id,
+          userIdA: agreement.owner_user_id,
+          userIdB: agreement.tenant_user_id,
+        });
+        if (convo?.id) {
+          await postSystemMessage({
+            conversationId: convo.id,
+            senderUserId: user.id,
+            type: "rental_offer_signed",
+            payload: {
+              agreement_id: agreement.id,
+              agreement_number: agreement.agreement_number,
+              listing_title: agreement.listing_title,
+            },
+          });
+        }
+      } catch (sysErr) {
+        console.warn('[RentalAgreementView] system message post failed (non-fatal):', sysErr);
+      }
+
       toast.success("Agreement signed! The landlord has been notified.");
       onSigned?.();
     } catch (err) {

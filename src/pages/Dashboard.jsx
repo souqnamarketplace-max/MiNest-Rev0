@@ -17,6 +17,7 @@ import ViewingRequestsList from "@/components/owner/ViewingRequestsList";
 import BookingRequestsList from "@/components/bookings/BookingRequestsList";
 import AvailabilityCalendar from "@/components/bookings/AvailabilityCalendar";
 import RentalRequestsList from "@/components/owner/RentalRequestsList";
+import MyActiveRentals from "@/components/dashboard/MyActiveRentals";
 import MyViewingsList from "@/components/viewer/MyViewingsList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -306,6 +307,10 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* My Active Rentals — prominent section above the tabs.
+          Hidden when the user has no active leases or rentals. */}
+      <MyActiveRentals />
+
       {/* Tabs for Seeker & Owner */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-1">
@@ -317,7 +322,7 @@ export default function Dashboard() {
             )}
             {!isSeeker && (
               <TabsTrigger value="rental_requests" className="flex-1 sm:flex-none rounded-lg px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                Rental Req.
+                Inquiries
               </TabsTrigger>
             )}
             {isSeeker && (

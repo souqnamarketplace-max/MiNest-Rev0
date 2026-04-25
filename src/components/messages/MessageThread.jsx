@@ -1,7 +1,82 @@
 import React, { useEffect, useRef } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { CheckCheck, Trash2 } from "lucide-react";
+import { CheckCheck, Trash2, FileText, ChevronRight, CheckCircle2, XCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { isSystemMessage, parseSystemMessage } from "@/lib/conversationSystemMessages";
+
+/**
+ * Card-style render for a system message inside the thread.
+ * Each variant has a clear visual marker + an action link when relevant.
+ */
+function SystemMessageCard({ type, payload, time }) {
+  const num = payload?.agreement_number != null
+    ? `#${String(payload.agreement_number).padStart(4, "0")}`
+    : null;
+  const link = payload?.agreement_id
+    ? `/my-payments?agreement=${payload.agreement_id}`
+    : null;
+
+  const variants = {
+    rental_offer_sent: {
+      Icon: FileText,
+      iconCls: "text-accent bg-accent/10",
+      title: "Rental offer sent",
+      cta: link ? "View agreement" : null,
+    },
+    rental_offer_signed: {
+      Icon: CheckCircle2,
+      iconCls: "text-emerald-700 bg-emerald-50",
+      title: "Rental agreement signed",
+      cta: link ? "View agreement" : null,
+    },
+    rental_offer_declined: {
+      Icon: XCircle,
+      iconCls: "text-red-700 bg-red-50",
+      title: "Rental offer declined",
+      cta: null,
+    },
+  };
+  const v = variants[type];
+  if (!v) return null;
+  const { Icon, iconCls, title, cta } = v;
+
+  const card = (
+    <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 max-w-md mx-auto hover:border-accent/30 transition-colors">
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${iconCls}`}>
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <span>{title}</span>
+          {num && (
+            <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full px-1.5 py-0.5">
+              {num}
+            </span>
+          )}
+        </div>
+        {payload?.listing_title && (
+          <div className="text-[11px] text-muted-foreground truncate">{payload.listing_title}</div>
+        )}
+      </div>
+      {cta && (
+        <div className="flex items-center gap-1 text-[11px] font-medium text-accent flex-shrink-0">
+          <span>{cta}</span>
+          <ChevronRight className="w-3 h-3" />
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="my-3 px-2">
+      {link ? <Link to={link}>{card}</Link> : card}
+      {time && (
+        <div className="text-center text-[10px] text-muted-foreground/50 mt-1">{time}</div>
+      )}
+    </div>
+  );
+}
 
 export default function MessageThread({ messages, currentUserId, currentUserEmail, otherUserAvatar, otherUserName, isLoading, onDeleteMessage }) {
   const containerRef = useRef(null);
@@ -100,6 +175,22 @@ export default function MessageThread({ messages, currentUserId, currentUserEmai
               </span>
             </div>
           );
+        }
+
+        // System message? Render as a card, not a bubble.
+        if (isSystemMessage(item)) {
+          const parsed = parseSystemMessage(item);
+          if (parsed) {
+            return (
+              <SystemMessageCard
+                key={item.id || `sys-${idx}`}
+                type={parsed.type}
+                payload={parsed.payload}
+                time={getTimeLabel(item)}
+              />
+            );
+          }
+          // Malformed system message — fall through to bubble (defensive)
         }
 
         const msg = item;

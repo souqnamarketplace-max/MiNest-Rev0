@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Loader2, ChevronRight, ChevronLeft, FileText, CheckCircle2 } from "lucide-react";
 import JurisdictionPicker from "@/components/payments/JurisdictionPicker";
 import { detectJurisdictionFromListing, getFormVersion, findJurisdiction } from "@/lib/jurisdictions";
+import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
 
 const STEPS = ["Your Info", "Property & Lease", "Financial Terms", "Rules & Sign"];
 
@@ -240,7 +241,7 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
         offer_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
-      await entities.RentalAgreement.create(payload);
+      const created = await entities.RentalAgreement.create(payload);
 
       await entities.Notification.create({
         user_id: tenantId,
@@ -248,7 +249,34 @@ export default function RentalOfferModal({ open, onOpenChange, listing, tenantUs
         title: '🏠 New Rental Offer',
         body: `You have received a rental offer for ${listing.title}`,
         read: false,
+        data: { agreement_id: created?.id },
       });
+
+      // Post a "rental offer sent" system message into the conversation, if one
+      // exists between the landlord and tenant for this listing. Best-effort —
+      // any failure is swallowed (we already have the agreement saved).
+      try {
+        const convo = await findConversation({
+          listingId: listing.id,
+          userIdA: user.id,
+          userIdB: tenantId,
+        });
+        if (convo?.id) {
+          await postSystemMessage({
+            conversationId: convo.id,
+            senderUserId: user.id,
+            type: "rental_offer_sent",
+            payload: {
+              agreement_id: created?.id,
+              agreement_number: created?.agreement_number,
+              listing_title: listing.title,
+            },
+          });
+        }
+      } catch (sysErr) {
+        console.warn('[RentalOfferModal] system message post failed (non-fatal):', sysErr);
+      }
+
       toast.success("Rental offer sent! The tenant will be notified.");
       onOpenChange(false);
       setStep(0);

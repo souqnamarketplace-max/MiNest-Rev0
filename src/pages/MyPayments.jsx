@@ -223,16 +223,30 @@ export default function MyPayments() {
                   <div className="space-y-2">
                     {ownerAgreements.map(a => (
                       <div key={a.id} className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{a.listing_title}</p>
-                          <p className="text-xs text-muted-foreground">Tenant: {a.tenant_user_id} · {a.lease_start_date} → {a.lease_end_date}</p>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground truncate">{a.listing_title}</p>
+                            {a.agreement_number != null && (
+                              <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full px-2 py-0.5 whitespace-nowrap">
+                                #{String(a.agreement_number).padStart(4, "0")}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            Tenant: {a.tenant_legal_name || a.tenant_user_id} · {a.lease_start_date} → {a.lease_end_date}
+                          </p>
                         </div>
-                        <Badge className={`text-xs ${
-                          a.status === "accepted" ? "bg-accent/10 text-accent" :
-                          a.status === "pending_tenant" ? "bg-yellow-500/10 text-yellow-600" :
-                          a.status === "declined" ? "bg-destructive/10 text-destructive" :
-                          "bg-muted text-muted-foreground"
-                        }`}>{a.status === "pending_tenant" ? "Awaiting Tenant" : a.status}</Badge>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge className={`text-xs ${
+                            a.status === "accepted" ? "bg-accent/10 text-accent" :
+                            a.status === "pending_tenant" ? "bg-yellow-500/10 text-yellow-600" :
+                            a.status === "declined" ? "bg-destructive/10 text-destructive" :
+                            "bg-muted text-muted-foreground"
+                          }`}>{a.status === "pending_tenant" ? "Awaiting Tenant" : a.status}</Badge>
+                          <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => setSelectedAgreement(a.id)}>
+                            <FileText className="w-3 h-3" /> View
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -369,8 +383,15 @@ export default function MyPayments() {
                 <div className="space-y-2">
                   {tenantAgreements.filter(a => a.status !== "pending_tenant").map(a => (
                     <div key={a.id} className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{a.listing_title}</p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground truncate">{a.listing_title}</p>
+                          {a.agreement_number != null && (
+                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full px-2 py-0.5 whitespace-nowrap">
+                              #{String(a.agreement_number).padStart(4, "0")}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">{a.lease_start_date} → {a.lease_end_date}</p>
                       </div>
                       <div className="flex items-center gap-2">
