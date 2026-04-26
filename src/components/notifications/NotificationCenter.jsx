@@ -9,6 +9,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 
+
+// Resolve a navigation target for a notification, falling back gracefully
+// when older notifications don't include data.link explicitly.
+// (Added by Zip 3.2 patch.)
+function resolveNotifLink(n) {
+  if (n?.data?.link) return n.data.link;
+  const aid = n?.data?.agreement_id || n?.agreement_id;
+  if (aid) return `/rentals/${aid}`;
+  const lid = n?.data?.listing_id || n?.listing_id;
+  if (lid) return `/listings/${lid}`;
+  const cid = n?.data?.conversation_id || n?.conversation_id;
+  if (cid) return `/messages?conversation=${cid}`;
+  return null;
+}
+
 export default function NotificationCenter() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -138,7 +153,7 @@ export default function NotificationCenter() {
                     <div
                       key={n.id}
                       className={`flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 transition-colors ${!n.read ? 'bg-accent/5' : ''}`}
-                      onClick={() => { handleMarkRead(n.id); setOpen(false); if (n.data?.link) navigate(n.data.link); }}
+                      onClick={() => { handleMarkRead(n.id); setOpen(false); const _l = resolveNotifLink(n); if (_l) navigate(_l); }}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${iconCfg?.bg || 'bg-muted'}`}>
                         <span className="text-sm">{iconCfg?.emoji || '🔔'}</span>

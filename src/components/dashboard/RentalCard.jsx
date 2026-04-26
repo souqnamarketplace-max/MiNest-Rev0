@@ -1,130 +1,239 @@
 /**
  * RentalCard — compact card for a single rental agreement, used by
- * MyActiveRentals on the Dashboard. Shows agreement number, title, status,
- * dates, role (tenant / landlord), and a "View Agreement" CTA.
+ * MyActiveRentals on the Dashboard and the Rentals page. Shows
+ * agreement number, title, status, dates, role (tenant / landlord),
+ * and a "View Agreement" CTA.
  *
  * Props:
- *   agreement: rental_agreements row (with optional joined fields)
- *   role: "tenant" | "landlord" — affects which counterparty info is shown
- *   counterpartyName?: string — pre-resolved display name (avoids extra fetch)
+ *   agreement          — rental_agreements row (with optional joined fields)
+ *   role               — "tenant" | "landlord" — affects which counterparty info is shown
+ *   counterpartyName?  — optional override for the counterparty display name
+ *
+ * Adds:
+ *   - Correct pill labels for terminated_early / expired / canceled / declined
+ *     (previously fell through to "Awaiting tenant signature").
+ *   - A 60-day "lease ending soon" banner shown when:
+ *       status === 'accepted'
+ *       AND renewal_status === 'none'
+ *       AND lease_end_date is within 60 days
+ *       AND no termination is in progress
  */
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 import {
   FileText,
-  Hash,
   Calendar,
   User,
+  Home,
   ChevronRight,
-  Clock,
   CheckCircle2,
+  Clock,
   XCircle,
+  Flag,
+  RotateCw,
+  AlertCircle,
 } from "lucide-react";
-import { format } from "date-fns";
+
+function fmtAgreementNumber(n) {
+  if (n == null) return null;
+  return `#${String(n).padStart(4, "0")}`;
+}
 
 function fmtDate(d) {
   if (!d) return "—";
-  try { return format(new Date(d), "PP"); } catch { return String(d); }
+  try {
+    return format(new Date(`${d}T00:00:00`), "MMM d, yyyy");
+  } catch {
+    return d;
+  }
 }
 
-const STATUS_CONFIG = {
-  pending_tenant: {
-    label: "Awaiting tenant signature",
-    cls: "bg-amber-50 border-amber-200 text-amber-800",
-    icon: Clock,
-  },
-  accepted: {
-    label: "Active",
-    cls: "bg-emerald-50 border-emerald-200 text-emerald-800",
-    icon: CheckCircle2,
-  },
-  declined: {
-    label: "Declined",
-    cls: "bg-red-50 border-red-200 text-red-800",
-    icon: XCircle,
-  },
-  expired: {
-    label: "Expired",
-    cls: "bg-muted border-border text-muted-foreground",
-    icon: Clock,
-  },
-  canceled: {
-    label: "Cancelled",
-    cls: "bg-muted border-border text-muted-foreground",
-    icon: XCircle,
-  },
-};
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const target = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Status pill — covers ALL agreement.status values explicitly. The
+ * previous version fell through to "Awaiting tenant signature" for
+ * any non-pending_tenant/non-accepted state, which incorrectly
+ * labeled terminated_early agreements.
+ */
+function StatusPill({ agreement }) {
+  const s = agreement?.status;
+
+  // Special case: a renewal is in progress on an accepted agreement.
+  if (s === "accepted" && agreement?.renewal_status === "renewal_offered") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+        <RotateCw className="w-3 h-3" /> Renewal in progress
+      </span>
+    );
+  }
+
+  // Special case: a termination is in progress on an accepted agreement.
+  if (
+    s === "accepted" &&
+    agreement?.termination_status &&
+    agreement.termination_status !== "none" &&
+    agreement.termination_status !== "declined"
+  ) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+        <Clock className="w-3 h-3" /> Termination pending
+      </span>
+    );
+  }
+
+  switch (s) {
+    case "pending_tenant":
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+          <Clock className="w-3 h-3" /> Awaiting tenant signature
+        </span>
+      );
+    case "accepted":
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <CheckCircle2 className="w-3 h-3" /> Active
+        </span>
+      );
+    case "terminated_early":
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+          <Flag className="w-3 h-3" /> Terminated
+        </span>
+      );
+    case "expired":
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          <Calendar className="w-3 h-3" /> Expired
+        </span>
+      );
+    case "canceled":
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          <XCircle className="w-3 h-3" /> Canceled
+        </span>
+      );
+    case "declined":
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+          <XCircle className="w-3 h-3" /> Declined
+        </span>
+      );
+    default:
+      // Unknown status — render generically rather than misleadingly.
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200">
+          {s || "Unknown"}
+        </span>
+      );
+  }
+}
 
 export default function RentalCard({ agreement, role = "tenant", counterpartyName }) {
   if (!agreement) return null;
-  const statusCfg = STATUS_CONFIG[agreement.status] || STATUS_CONFIG.pending_tenant;
-  const StatusIcon = statusCfg.icon;
+  const num = fmtAgreementNumber(agreement.agreement_number);
 
-  const numStr = agreement.agreement_number != null
-    ? `#${String(agreement.agreement_number).padStart(4, "0")}`
-    : null;
+  // 60-day renewal reminder. Computed inline (cheap arithmetic, no need
+  // to memoize — and memoizing here would force a hook to live below an
+  // early `return null`, which is a rules-of-hooks violation).
+  const daysToEnd = daysUntil(agreement.lease_end_date);
+  const showRenewalReminder =
+    agreement.status === "accepted" &&
+    (agreement.renewal_status || "none") === "none" &&
+    !(
+      agreement.termination_status &&
+      agreement.termination_status !== "none" &&
+      agreement.termination_status !== "declined"
+    ) &&
+    daysToEnd != null &&
+    daysToEnd >= 0 &&
+    daysToEnd <= 60;
 
-  const counterpartyLabel = role === "tenant" ? "Landlord" : "Tenant";
-  const counterpartyDisplay = counterpartyName
-    || (role === "tenant" ? agreement.owner_legal_name : agreement.tenant_legal_name)
-    || "—";
+  const showRenewedBadge = agreement.renewal_status === "renewed";
 
-  const link = `/rentals/${agreement.id}`;
+  // Counterparty label — fall back to a sensible default.
+  const counterparty =
+    counterpartyName ||
+    (role === "tenant"
+      ? agreement.landlord_legal_name || agreement.owner_legal_name || "Landlord"
+      : agreement.tenant_legal_name || "Tenant");
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 flex flex-col gap-3 hover:border-accent/30 transition-colors">
-      {/* Top row: title + status badge */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-sm font-semibold text-foreground truncate">
-              {agreement.listing_title || "Rental Agreement"}
-            </h3>
-            {numStr && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground bg-muted/50 rounded-full px-2 py-0.5">
-                <Hash className="w-2.5 h-2.5" />
-                {numStr}
+    <Link
+      to={`/rentals/${agreement.id}`}
+      className="block rounded-xl border border-border bg-card hover:border-accent/40 hover:shadow-sm transition-all"
+    >
+      <div className="p-4 space-y-3">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="font-semibold truncate">
+                {agreement.listing_title || "Rental agreement"}
+              </div>
+              {num && (
+                <div className="text-xs text-muted-foreground">Agreement {num}</div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <StatusPill agreement={agreement} />
+            {showRenewedBadge && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Renewed
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {agreement.governing_province_or_state || ""}{agreement.governing_province_or_state ? " · " : ""}
-            {agreement.country === "US" ? "United States" : "Canada"}
-          </p>
         </div>
-        <div className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border whitespace-nowrap ${statusCfg.cls}`}>
-          <StatusIcon className="w-3 h-3" />
-          <span>{statusCfg.label}</span>
-        </div>
-      </div>
 
-      {/* Middle row: counterparty + dates */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-        <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
-          <User className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="text-muted-foreground/80">{counterpartyLabel}:</span>
-          <span className="text-foreground font-medium truncate">{counterpartyDisplay}</span>
-        </div>
-        {agreement.lease_start_date && (
-          <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
-            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">
-              {fmtDate(agreement.lease_start_date)} → {fmtDate(agreement.lease_end_date)}
-            </span>
+        {/* Renewal reminder banner */}
+        {showRenewalReminder && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-900">
+              <span className="font-semibold">
+                Lease ends in {daysToEnd} day{daysToEnd === 1 ? "" : "s"}.
+              </span>{" "}
+              Open the agreement to send a renewal offer.
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Bottom row: actions */}
-      <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
-        <Button asChild size="sm" variant="default" className="h-8 text-xs gap-1 bg-accent hover:bg-accent/90 text-accent-foreground">
-          <Link to={link}>
-            <FileText className="w-3 h-3" /> View Agreement
-            <ChevronRight className="w-3 h-3" />
-          </Link>
-        </Button>
+        {/* Body row */}
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <User className="w-3.5 h-3.5" />
+            <span className="truncate">{counterparty}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Home className="w-3.5 h-3.5" />
+            <span className="capitalize">{role}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Start: {fmtDate(agreement.lease_start_date)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>End: {fmtDate(agreement.lease_end_date)}</span>
+          </div>
+        </div>
+
+        {/* Footer row */}
+        <div className="flex items-center justify-end text-xs font-medium text-accent">
+          View agreement <ChevronRight className="w-3 h-3 ml-0.5" />
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }

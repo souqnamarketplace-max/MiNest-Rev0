@@ -1,61 +1,44 @@
 /**
- * Conversation system messages — internal "events" rendered as cards in the
- * message thread, distinct from regular text messages.
+ * Conversation system messages — encodes/decodes structured "system"
+ * events that get posted into a conversation as a special message,
+ * plus a friendly preview for the inbox.
  *
- * Encoding: a regular `messages` row whose `content` starts with the marker
- * `[[system:<type>:<json>]]`. The MessageThread parses this and renders a
- * styled card instead of a chat bubble. To regular `entities.Message.create`
- * callers it's just text — no schema changes needed.
+ * A system message is stored as a JSON-encoded string in
+ * messages.content with the marker prefix `__system__:` so it can be
+ * round-tripped from a normal text message.
  *
- * Supported types:
- *   rental_offer_sent       — landlord sent a rental offer (links to agreement)
- *   rental_offer_signed     — tenant signed (links to agreement)
- *   rental_offer_declined   — tenant declined (display only, no link)
+ *   content: `__system__:${JSON.stringify({ type, payload })}`
  *
- * Payload shape:
- *   { agreement_id, agreement_number?, listing_title? }
+ * The MessageThread component recognizes this prefix and renders a
+ * card variant instead of a chat bubble.
  */
+
 import { entities } from "@/api/entities";
 
-export const SYSTEM_MARKER = "[[system:";
-const SYSTEM_REGEX = /^\[\[system:([a-z_]+):(.*)\]\]$/s;
+const MARKER = "__system__:";
 
-/**
- * Detect whether a message is a system message.
- * Cheap — only does a startsWith.
- */
-export function isSystemMessage(msg) {
-  if (!msg || typeof msg.content !== "string") return false;
-  return msg.content.startsWith(SYSTEM_MARKER);
+export function encodeSystemMessage(type, payload = {}) {
+  return `${MARKER}${JSON.stringify({ type, payload })}`;
+}
+
+export function isSystemMessage(content) {
+  return typeof content === "string" && content.startsWith(MARKER);
+}
+
+export function parseSystemMessage(content) {
+  if (!isSystemMessage(content)) return null;
+  try {
+    return JSON.parse(content.slice(MARKER.length));
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Parse a system-message content string into { type, payload }.
- * Returns null if not a system message or malformed.
- */
-export function parseSystemMessage(msg) {
-  if (!isSystemMessage(msg)) return null;
-  const m = SYSTEM_REGEX.exec(msg.content);
-  if (!m) return null;
-  const [, type, jsonStr] = m;
-  let payload = {};
-  try { payload = JSON.parse(jsonStr); } catch { /* keep empty */ }
-  return { type, payload };
-}
-
-/**
- * Encode a system event into a string suitable for messages.content.
- */
-export function encodeSystemMessage(type, payload) {
-  return `${SYSTEM_MARKER}${type}:${JSON.stringify(payload || {})}]]`;
-}
-
-/**
- * Insert a system message into a conversation. Best-effort — any failure
- * (e.g. missing conversation_id, RLS) is swallowed so it never blocks the
- * primary action (e.g. sending the offer).
- *
- * Also updates conversation.last_message_text/at so the inbox shows it.
+ * Post a system message into a conversation. Best-effort — wraps the
+ * actual create + the conversation last_message bump, swallowing any
+ * non-fatal errors (the action that triggered this should never fail
+ * on a system-message hiccup).
  */
 export async function postSystemMessage({ conversationId, senderUserId, type, payload }) {
   if (!conversationId || !senderUserId || !type) return null;
@@ -66,8 +49,6 @@ export async function postSystemMessage({ conversationId, senderUserId, type, pa
       sender_user_id: senderUserId,
       content,
     });
-    // Refresh conversation last_message_at so inbox sorts correctly. Use a
-    // friendly preview rather than the raw marker.
     const preview = humanPreview(type, payload);
     try {
       await entities.Conversation.update(conversationId, {
@@ -88,9 +69,10 @@ export async function postSystemMessage({ conversationId, senderUserId, type, pa
  * Human-readable preview for inbox display when content is a system marker.
  */
 export function humanPreview(type, payload = {}) {
-  const num = payload.agreement_number != null
-    ? `#${String(payload.agreement_number).padStart(4, "0")}`
-    : "";
+  const num =
+    payload.agreement_number != null
+      ? `#${String(payload.agreement_number).padStart(4, "0")}`
+      : "";
   switch (type) {
     case "rental_offer_sent":
       return `📄 Rental offer sent ${num}`.trim();
@@ -98,6 +80,7 @@ export function humanPreview(type, payload = {}) {
       return `✅ Rental agreement signed ${num}`.trim();
     case "rental_offer_declined":
       return `❌ Rental offer declined ${num}`.trim();
+    // Termination
     case "termination_requested":
       return `⏰ Early termination requested ${num}`.trim();
     case "termination_accepted":
@@ -108,6 +91,17 @@ export function humanPreview(type, payload = {}) {
       return `🔄 Termination counter-offer ${num}`.trim();
     case "agreement_terminated_early":
       return `🏁 Lease terminated early ${num}`.trim();
+    // Renewal
+    case "renewal_offered":
+      return `🔁 Renewal offered ${num}`.trim();
+    case "renewal_accepted":
+      return `✅ Renewal accepted ${num}`.trim();
+    case "renewal_declined":
+      return `↩️ Renewal declined ${num}`.trim();
+    case "renewal_countered":
+      return `🔄 Renewal counter-offer ${num}`.trim();
+    case "renewal_completed":
+      return `🎉 Lease renewed ${num}`.trim();
     default:
       return "System event";
   }
@@ -115,8 +109,6 @@ export function humanPreview(type, payload = {}) {
 
 /**
  * Find the conversation between two users that's tied to a specific listing.
- * Used so the offer modal can locate the right conversation to post into,
- * even when invoked from a non-conversation entry point (e.g. dashboard).
  */
 export async function findConversation({ listingId, userIdA, userIdB }) {
   if (!listingId || !userIdA || !userIdB) return null;
