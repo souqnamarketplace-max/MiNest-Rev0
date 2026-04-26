@@ -124,7 +124,7 @@ async function savePushToken(userId, token) {
           platform: detectPlatform(),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'token' }
+        { onConflict: 'user_id,token' }
       );
 
     if (error) {
