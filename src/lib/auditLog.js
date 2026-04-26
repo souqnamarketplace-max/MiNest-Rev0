@@ -25,7 +25,7 @@ async function resolveActor() {
     let isAdmin = false;
     try {
       const { data: prof } = await supabase
-        .from("profiles")
+        .from("user_profiles")
         .select("is_admin")
         .eq("id", u.id)
         .maybeSingle();
