@@ -1,3 +1,4 @@
+// PROFILE_SIGNOUT_PROMINENT_3_5_0
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { entities, uploadFile, invokeLLM } from '@/api/entities';
@@ -322,7 +323,7 @@ export default function Profile() {
             <Save className="w-4 h-4 mr-1" />
             {saving ? "Saving..." : "Save Profile"}
           </Button>
-          <Button variant="outline" onClick={() => logout('/')} className="min-h-[44px]">
+          <Button variant="outline" size="lg" className="w-full sm:w-auto gap-2" onClick={() => logout('/')} className="min-h-[44px]">
             <LogOut className="w-4 h-4 mr-1" /> Sign Out
           </Button>
 

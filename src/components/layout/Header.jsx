@@ -1,3 +1,4 @@
+// MOBILE_NAV_FIXED_3_5_0
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { entities } from '@/api/entities';
@@ -152,8 +153,8 @@ export default function Header() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation menu"><Menu className="w-5 h-5" /></Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 pt-8">
-              <div className="flex flex-col gap-1">
+            <SheetContent side="right" className="w-72 pt-8 h-full flex flex-col">
+              <div className="flex-1 overflow-y-auto flex flex-col gap-1 pr-1">
                 <CountrySwitcher variant="mobile" />
                 <div className="my-3 border-t border-border" />
                 {navLinks.map((link) => (
@@ -182,8 +183,8 @@ export default function Header() {
                         <link.icon className="w-4 h-4" />{link.label}
                       </Link>
                     ))}
-                    <div className="my-2 border-t border-border" />
-                    <Button variant="outline" className="w-full gap-2" onClick={() => { setMobileOpen(false); logout('/'); }}>
+                    <div className="mt-auto pt-3 border-t border-border" />
+                    <Button variant="outline" className="w-full gap-2 sticky bottom-0 bg-background" onClick={() => { setMobileOpen(false); logout('/'); }}>
                       <LogOut className="w-4 h-4" /> Sign Out
                     </Button>
                   </>
