@@ -22,11 +22,15 @@
  *
  * Props:
  *   agreement      — rental_agreements row (parent)
- *   currentUserId  — auth.users.id of the logged-in user
  *   onChanged      — callback to re-fetch the agreement after any action
+ *
+ * Note: the logged-in user is read internally from AuthContext, mirroring
+ * TerminationPanel.jsx's signature so the mount line in RentalAgreementView
+ * is symmetric: `<TerminationPanel agreement={...} onChanged={...} />` ↔
+ * `<RenewalPanel agreement={...} onChanged={...} />`.
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -45,6 +49,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/lib/AuthContext";
 import {
   offerRenewal,
   respondToRenewal,
@@ -210,7 +215,10 @@ function OfferForm({
   );
 }
 
-export default function RenewalPanel({ agreement, currentUserId, onChanged }) {
+export default function RenewalPanel({ agreement, onChanged }) {
+  const { user } = useAuth();
+  const currentUserId = user?.id || null;
+
   const [submitting, setSubmitting] = useState(false);
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [showCounterForm, setShowCounterForm] = useState(false);
@@ -231,11 +239,9 @@ export default function RenewalPanel({ agreement, currentUserId, onChanged }) {
   const isProposer = agreement?.renewal_proposed_by === currentUserId;
   const hasCounter = !!agreement?.renewal_responded_by;
 
-  // Days until lease ends — drives the "ending soon" banner
-  const daysToEnd = useMemo(
-    () => daysUntil(agreement?.lease_end_date),
-    [agreement?.lease_end_date]
-  );
+  // Days until lease ends — drives the "ending soon" banner.
+  // Computed inline (cheap arithmetic, no need to memoize).
+  const daysToEnd = daysUntil(agreement?.lease_end_date);
   const isEndingSoon =
     daysToEnd != null && daysToEnd >= 0 && daysToEnd <= 60;
 

@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { downloadRentalAgreementPdf } from "@/components/payments/RentalAgreementPdf";
 import RentalDocumentsViewer from "@/components/payments/RentalDocumentsViewer";
 import TerminationPanel from "@/components/payments/TerminationPanel";
+import RenewalPanel from "@/components/payments/RenewalPanel";
 import TenantInfoForm, { validateTenantInfo } from "@/components/payments/TenantInfoForm";
 import TenantIdUploader from "@/components/payments/TenantIdUploader";
 import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
@@ -445,7 +446,7 @@ export default function RentalAgreementView({ agreement, plan, onSigned, onDecli
             appropriate panel based on the actor's role and current
             termination_status. */}
         <TerminationPanel agreement={agreement} onChanged={onSigned} />
-
+        <RenewalPanel agreement={agreement} onChanged={onSigned} />
         {/* Tenant Verification Documents — visible to landlord and admins.
             Hidden from the tenant themselves and other non-party users. */}
         {(isOwner || isAdmin) && (
