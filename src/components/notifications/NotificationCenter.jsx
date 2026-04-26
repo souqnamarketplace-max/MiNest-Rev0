@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { getNotifIconConfig } from "@/lib/notificationIcons";
 import { Button } from "@/components/ui/button";
 import { Bell, Check, X, Settings } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
 
