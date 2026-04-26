@@ -1,104 +1,229 @@
+// STRIPE_CONNECT_REAL_3_6_1
 /**
- * Shown to homeowners who haven't connected their Stripe account yet.
- * Also shows the current onboarding status if in progress.
+ * ConnectAccountBanner — landlord Stripe Connect onboarding UI.
+ *
+ * Three visual states:
+ *   1. not_started: "Connect your bank to receive rent payments" + button
+ *   2. pending:     "Bank setup in progress" + Continue setup button
+ *   3. enabled:     "Bank Connected ✓ Ready to receive rent" + Manage link
+ *
+ * Connection state comes from /api/stripe/connect/status. We refresh
+ * automatically when the user lands on /dashboard?stripe_connect=return
+ * (which Stripe redirects to after onboarding).
+ *
+ * Replaces the legacy stub that showed "Stripe Connect coming soon"
+ * toast.
  */
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
+import { CreditCard, Check, AlertCircle, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/lib/AuthContext";
-import { AlertCircle, CheckCircle2, Loader2, ExternalLink, CreditCard, Edit3, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
-export default function ConnectAccountBanner({ status, onStatusChange }) {
-  const { user, navigateToLogin, logout } = useAuth();
-  const qc = useQueryClient();
-  const [loading, setLoading] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
+async function authHeaders() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const headers = { "Content-Type": "application/json" };
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return headers;
+}
 
-  const handleConnect = async () => {
-    toast.info("Stripe Connect coming soon! Payment collection will be enabled after setup.");
-    setLoading(false);
+export default function ConnectAccountBanner() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/stripe/connect/status", { method: "GET", headers });
+      if (!res.ok) {
+        console.warn("[ConnectAccountBanner] status fetch failed:", res.status);
+        setStatus({ connected: false });
+        return;
+      }
+      const data = await res.json();
+      setStatus(data);
+    } catch (err) {
+      console.error("[ConnectAccountBanner] status error:", err);
+      setStatus({ connected: false });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    refreshStatus();
+  }, [refreshStatus]);
+
+  // If returning from Stripe onboarding, refresh status and clean URL
+  useEffect(() => {
+    const stripeReturn = searchParams.get("stripe_connect");
+    if (stripeReturn === "return" || stripeReturn === "refresh") {
+      refreshStatus();
+      // Strip the param from the URL so a refresh doesn't re-trigger
+      const next = new URLSearchParams(searchParams);
+      next.delete("stripe_connect");
+      setSearchParams(next, { replace: true });
+      if (stripeReturn === "return") {
+        toast.success("Welcome back! Refreshing your account status…");
+      }
+    }
+  }, [searchParams, setSearchParams, refreshStatus]);
+
+  const startOnboarding = async () => {
+    setActionLoading(true);
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/stripe/connect/onboard", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        toast.error(data.error || "Failed to start onboarding");
+        return;
+      }
+      // Redirect to Stripe-hosted onboarding
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error("Network error: " + err.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleDisconnect = async () => {
-    toast.info("Stripe Connect coming soon!");
-    setDisconnecting(false);
+  const continueOnboarding = async () => {
+    setActionLoading(true);
+    try {
+      const headers = await authHeaders();
+      const res = await fetch("/api/stripe/connect/refresh-link", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        toast.error(data.error || "Failed to resume onboarding");
+        return;
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error("Network error: " + err.message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  if (status === "completed") {
+  if (loading) {
     return (
-      <div className={`flex items-center gap-3 rounded-xl p-4 border transition-all ${
-        disconnecting 
-          ? "bg-muted/50 border-border opacity-60" 
-          : "bg-accent/5 border-accent/20"
-      }`}>
-        {disconnecting ? (
-          <Loader2 className="w-5 h-5 text-accent flex-shrink-0 animate-spin" />
-        ) : (
-          <CheckCircle2 className="w-5 h-5 text-accent flex-shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">
-            {disconnecting ? "Disconnecting..." : "Payment account connected"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {disconnecting ? "Your payment account is being disconnected." : "You can receive rent payments directly to your bank."}
-          </p>
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1"
-            onClick={handleConnect}
-            disabled={loading || disconnecting}
-            title="Update account details"
+      <div className="rounded-lg border border-border p-4 flex items-center gap-3 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span>Checking payment account…</span>
+      </div>
+    );
+  }
+
+  // STATE 3: enabled — fully onboarded
+  if (status?.connected && status.charges_enabled && status.payouts_enabled) {
+    return (
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900 p-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full bg-emerald-100 dark:bg-emerald-900 p-2">
+            <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm">Bank Connected</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ready to receive rent payments in {status.country === "US" ? "USD" : "CAD"}.
+            </p>
+          </div>
+          <a
+            href="https://dashboard.stripe.com/express"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center gap-1"
           >
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Edit3 className="w-3.5 h-3.5" />}
-            Update
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive border-destructive hover:bg-destructive/5 gap-1"
-            onClick={handleDisconnect}
-            disabled={disconnecting || loading}
-            title="Disconnect Stripe account"
-          >
-            {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
-            {disconnecting ? "Disconnecting..." : "Disconnect"}
-          </Button>
+            Manage <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
       </div>
     );
   }
 
-  if (status === "requires_attention") {
+  // STATE 2: pending — account exists, KYC in progress / restricted
+  if (status?.connected) {
+    const isRestricted = status.onboarding_status === "restricted";
+    const Icon = isRestricted ? AlertCircle : Loader2;
+    const iconClass = isRestricted ? "text-amber-600" : "text-blue-600 animate-spin";
+    const wrapClass = isRestricted
+      ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900"
+      : "border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900";
+
     return (
-      <div className="flex items-start gap-3 bg-destructive/5 border border-destructive/20 rounded-xl p-4">
-        <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Action required on your Stripe account</p>
-          <p className="text-xs text-muted-foreground mb-3">Please complete your account setup to receive payments.</p>
-          <Button size="sm" onClick={handleConnect} disabled={loading} className="gap-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
-            Fix Account
-          </Button>
+      <div className={`rounded-lg border p-4 ${wrapClass}`}>
+        <div className="flex items-start gap-3">
+          <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${iconClass}`} />
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm">
+              {isRestricted ? "Bank account needs attention" : "Bank setup in progress"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isRestricted
+                ? "Stripe needs additional information to enable rent payments. Continue setup to fix."
+                : "Stripe is reviewing your account. This usually takes a few minutes."}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={continueOnboarding}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> Loading…</>
+              ) : (
+                <>Continue setup <ExternalLink className="w-3 h-3 ml-1.5" /></>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
+  // STATE 1: not_started — no Connect account at all
   return (
-    <div className="flex items-start gap-3 bg-muted/50 border border-border rounded-xl p-4">
-      <CreditCard className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">Connect your bank to receive rent payments</p>
-        <p className="text-xs text-muted-foreground mb-3">Securely receive monthly rent from tenants, directly into your bank account via Stripe.</p>
-        <Button size="sm" onClick={handleConnect} disabled={loading} className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground">
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-          {status === "in_progress" ? "Continue Setup" : "Connect Bank Account"}
-        </Button>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-start gap-3">
+        <div className="rounded-md bg-accent/10 p-2 flex-shrink-0">
+          <CreditCard className="w-4 h-4 text-accent" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm">Connect your bank to receive rent payments</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Securely receive monthly rent from tenants, directly into your bank account via Stripe.
+          </p>
+          <Button
+            size="sm"
+            className="mt-3 gap-1.5"
+            onClick={startOnboarding}
+            disabled={actionLoading}
+          >
+            {actionLoading ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> Starting…</>
+            ) : (
+              <><CreditCard className="w-3 h-3" /> Connect Bank Account</>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
