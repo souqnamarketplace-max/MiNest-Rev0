@@ -7,6 +7,7 @@ import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import ProfileSetupGuard from '@/components/auth/ProfileSetupGuard';
 import { CountryProvider } from '@/lib/CountryContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AppLayout from '@/components/layout/AppLayout';
@@ -92,7 +93,7 @@ const ProtectedRoute = ({ children }) => {
   if (!user) {
     return <Navigate to={`/login?returnTo=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
-  return children;
+  return <ProfileSetupGuard>{children}</ProfileSetupGuard>;
 };
 
 // ─── Page transitions ────────────────────────────────────────────────────

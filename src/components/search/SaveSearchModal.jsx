@@ -69,7 +69,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
   if (isQuebec(filters.province_or_state)) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
           <DialogHeader><DialogTitle>Cannot Save Search</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             MiNest does not currently operate in Quebec. Please search in another province.
@@ -134,7 +134,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
   if (saved) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm" aria-describedby={undefined}>
           <div className="flex flex-col items-center text-center gap-4 py-4">
             <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center">
               <Bell className="w-6 h-6 text-accent" />
@@ -161,7 +161,7 @@ export default function SaveSearchModal({ open, onOpenChange, filters = {}, sear
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) setSaved(false); onOpenChange(v); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookmarkPlus className="w-5 h-5 text-accent" />

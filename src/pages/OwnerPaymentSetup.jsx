@@ -143,7 +143,7 @@ export default function OwnerPaymentSetup() {
 
       {/* Setup Modal */}
       <Dialog open={!!setupListing} onOpenChange={(o) => !o && setSetupListing(null)}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>
               {getPlanForListing(setupListing?.id) ? "Update Payment Plan" : "Enable Rent Payments"} — {setupListing?.title}

@@ -418,7 +418,7 @@ export default function MyPayments() {
 
       {/* Dispute Modal */}
       <Dialog open={!!disputeTarget} onOpenChange={(o) => !o && setDisputeTarget(null)}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Report a Payment Issue</DialogTitle>
           </DialogHeader>

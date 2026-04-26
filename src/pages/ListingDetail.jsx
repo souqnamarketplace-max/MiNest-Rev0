@@ -938,7 +938,7 @@ export default function ListingDetail() {
 
       {/* Report Modal */}
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Report This Listing</DialogTitle>
           </DialogHeader>

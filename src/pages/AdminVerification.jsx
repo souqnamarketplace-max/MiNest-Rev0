@@ -346,7 +346,7 @@ export default function AdminVerification() {
 
       {/* Review Dialog */}
       <Dialog open={reviewDialog} onOpenChange={setReviewDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Review Verification</DialogTitle>
           </DialogHeader>

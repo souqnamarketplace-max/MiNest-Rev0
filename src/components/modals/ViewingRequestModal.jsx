@@ -124,7 +124,7 @@ export default function ViewingRequestModal({ open, onOpenChange, listing, exist
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{existingAppointment ? "Update Viewing Request" : "Request a Viewing"}</DialogTitle>
         </DialogHeader>

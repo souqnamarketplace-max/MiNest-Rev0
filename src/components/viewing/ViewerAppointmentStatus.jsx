@@ -188,7 +188,7 @@ export default function ViewerAppointmentStatus({ appointment, onStatusChange })
 
       {/* Accept Proposal Dialog */}
       <Dialog open={acceptDialogOpen} onOpenChange={setAcceptDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Confirm Viewing</DialogTitle>
           </DialogHeader>
@@ -215,7 +215,7 @@ export default function ViewerAppointmentStatus({ appointment, onStatusChange })
 
       {/* Decline Proposal Dialog */}
       <Dialog open={declineDialogOpen} onOpenChange={setDeclineDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Decline Proposal</DialogTitle>
           </DialogHeader>
@@ -244,7 +244,7 @@ export default function ViewerAppointmentStatus({ appointment, onStatusChange })
 
       {/* Cancel Dialog */}
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Cancel Viewing</DialogTitle>
           </DialogHeader>

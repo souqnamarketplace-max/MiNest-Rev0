@@ -284,7 +284,7 @@ export default function Messages() {
 
       {/* Report modal */}
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Report This User</DialogTitle>
           </DialogHeader>

@@ -234,7 +234,7 @@ function AdminSendOfferModal({ onClose, onSent }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Send Rental Offer (Admin Override)</DialogTitle>
         </DialogHeader>

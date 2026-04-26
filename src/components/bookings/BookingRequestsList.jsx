@@ -155,7 +155,7 @@ export default function BookingRequestsList() {
 
       {/* Approve dialog with optional response */}
       <Dialog open={!!respondingTo} onOpenChange={(o) => !o && setRespondingTo(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Confirm Booking</DialogTitle>
           </DialogHeader>

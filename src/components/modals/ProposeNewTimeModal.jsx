@@ -41,7 +41,7 @@ export default function ProposeNewTimeModal({ open, onOpenChange, onPropose, loa
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Propose a New Time</DialogTitle>
         </DialogHeader>

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { entities, uploadFile, invokeLLM } from '@/api/entities';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from "@/lib/AuthContext";
+import { markProfileSetupComplete } from "@/lib/useProfileCompletion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -160,7 +161,8 @@ export default function Profile() {
       await entities.UserProfile.create({ ...form, user_id: user.id, email: user.email });
     }
     queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
-    toast.success("Profile saved!");
+    markProfileSetupComplete(user?.id);
+        toast.success("Profile saved!");
     setSaving(false);
   };
 

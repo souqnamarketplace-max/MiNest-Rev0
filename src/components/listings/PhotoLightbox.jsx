@@ -174,7 +174,7 @@ export default function PhotoLightbox({ photos = [], initialIndex = 0, open, onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[100vw] w-screen h-screen p-0 bg-black/95 border-0 rounded-none sm:rounded-none flex flex-col [&>button]:hidden" aria-describedby={undefined}>
+      <DialogContent className="max-w-[100vw] w-screen h-screen p-0 bg-black/95 border-0 rounded-none sm:rounded-none flex flex-col [& aria-describedby={undefined}>button]:hidden" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Photo gallery — {currentIndex + 1} of {photos.length}</DialogTitle>
 
         {/* Top bar */}

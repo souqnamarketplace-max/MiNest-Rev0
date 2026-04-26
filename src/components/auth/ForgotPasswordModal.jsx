@@ -56,7 +56,7 @@ export default function ForgotPasswordModal({ open, onOpenChange, defaultEmail =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
         {sent ? (
           <>
             <DialogHeader>
