@@ -4,9 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { getNotifIconConfig } from "@/lib/notificationIcons";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import {
-  Bell, Check, ChevronLeft, ChevronRight
-} from "lucide-react";
+import { Bell, Check, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { formatDistanceToNow } from "date-fns";
 
 const PAGE_SIZE = 20;
@@ -154,7 +152,12 @@ export default function Notifications() {
               <Check className="w-3.5 h-3.5" /> Mark all read
             </Button>
           )}
-        </div>
+                <Link to="/notification-preferences">
+          <Button variant="ghost" size="icon" aria-label="Notification settings">
+            <Settings className="w-4 h-4" />
+          </Button>
+        </Link>
+</div>
       </div>
 
 

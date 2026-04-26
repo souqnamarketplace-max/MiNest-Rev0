@@ -4,7 +4,7 @@ import { entities } from '@/api/entities';
 import { useAuth } from "@/lib/AuthContext";
 import { getNotifIconConfig } from "@/lib/notificationIcons";
 import { Button } from "@/components/ui/button";
-import { Bell, Check, X } from "lucide-react";
+import { Bell, Check, X, Settings } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase";
@@ -129,6 +129,11 @@ export default function NotificationCenter() {
                     <Check className="w-3 h-3 mr-1" /> Mark all read
                   </Button>
                 )}
+              <Link to="/notification-preferences" onClick={() => setOpen(false)}>
+                <Button variant="ghost" size="icon" aria-label="Notification settings" className="h-7 w-7">
+                  <Settings className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
               <Button variant="ghost" size="icon" aria-label="Close notifications" className="h-7 w-7" onClick={() => setOpen(false)}>
                   <X className="w-3.5 h-3.5" />
                 </Button>

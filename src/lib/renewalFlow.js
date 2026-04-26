@@ -37,6 +37,7 @@
 
 import { entities } from "@/api/entities";
 import { logAuditEvent, AuditEvents } from "@/lib/auditLog";
+import { shouldNotify } from "@/lib/notificationPreferences";
 import { postSystemMessage, findConversation } from "@/lib/conversationSystemMessages";
 
 /**
@@ -64,6 +65,11 @@ function roleOf(agreement, actorUserId) {
  * with "column does not exist".
  */
 async function notify({ userId, type, title, body, agreementId, link }) {
+  if (userId && type) {
+    try {
+      if (!(await shouldNotify(userId, type))) return;
+    } catch (e) { /* fail-open */ }
+  }
   if (!userId) return;
   const targetLink = link || (agreementId ? `/rentals/${agreementId}` : null);
   try {

@@ -28,6 +28,7 @@
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabase";
 import { logAuditEvent, AuditEvents } from "@/lib/auditLog";
+import { shouldNotify } from "@/lib/notificationPreferences";
 import { findConversation, postSystemMessage } from "@/lib/conversationSystemMessages";
 
 /**
@@ -50,6 +51,11 @@ function roleOf(agreement, actorUserId) {
  * Best-effort notification — never throws. Caller doesn't need to wrap.
  */
 async function notify({ userId, type, title, body, agreementId }) {
+  if (userId && type) {
+    try {
+      if (!(await shouldNotify(userId, type))) return;
+    } catch (e) { /* fail-open */ }
+  }
   try {
     await entities.Notification.create({
       user_id: userId,

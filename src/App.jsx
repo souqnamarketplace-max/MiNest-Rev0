@@ -58,6 +58,7 @@ const AdminEmailTest = lazyWithRetry(() => import('@/pages/AdminEmailTest'));
 const CityListings = lazyWithRetry(() => import('@/pages/CityListings'));
 const SeekerOnboarding = lazyWithRetry(() => import('@/pages/SeekerOnboarding'));
 const SavedSearches = lazyWithRetry(() => import('@/pages/SavedSearches'));
+const NotificationPreferences = lazyWithRetry(() => import('@/pages/NotificationPreferences'));
 const Notifications = lazyWithRetry(() => import('@/pages/Notifications'));
 const MyViewings = lazyWithRetry(() => import('@/pages/MyViewings'));
 const BoostManager = lazyWithRetry(() => import('@/pages/BoostManager'));
@@ -131,6 +132,7 @@ function AnimatedRoutes() {
               <Route path="/city" element={<CityListings />} />
               <Route path="/rooms-for-rent/:citySlug" element={<CityRoomsPage />} />
               <Route path="/rooms-for-rent-:citySlug" element={<CityRoomsPage />} />
+              <Route path="/notification-preferences" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
               <Route path="/listing/:id/edit" element={<ProtectedRoute><EditListing /></ProtectedRoute>} />
