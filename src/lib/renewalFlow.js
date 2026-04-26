@@ -57,6 +57,11 @@ function roleOf(agreement, actorUserId) {
  * so we MUST include data.link or the notification looks like dead text.
  * The default link points at the agreement page; callers may override
  * via the `link` arg (e.g. for accept-renewal, the new child agreement).
+ *
+ * The `notifications` table has no top-level `agreement_id` column —
+ * all entity references live in the `data` jsonb. Earlier versions of
+ * this helper wrote `agreement_id` as a column and silently failed
+ * with "column does not exist".
  */
 async function notify({ userId, type, title, body, agreementId, link }) {
   if (!userId) return;
@@ -67,8 +72,10 @@ async function notify({ userId, type, title, body, agreementId, link }) {
       type,
       title,
       body,
-      agreement_id: agreementId,
-      data: targetLink ? { link: targetLink, agreement_id: agreementId } : null,
+      data: {
+        ...(targetLink ? { link: targetLink } : {}),
+        ...(agreementId ? { agreement_id: agreementId } : {}),
+      },
     });
   } catch (err) {
     console.warn("[renewalFlow] notification failed (non-fatal):", err);
